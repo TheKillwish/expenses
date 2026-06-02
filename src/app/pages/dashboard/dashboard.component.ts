@@ -1,16 +1,25 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { BottomSheetComponent } from '../../components/bottom-sheet/bottom-sheet.component';
 import { NgFor, NgIf } from '@angular/common';
+import { SupabaseService } from '../../services/supabase.service';
+import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [BottomSheetComponent,NgIf,NgFor],
+  imports: [BottomSheetComponent,NgIf,NgFor,FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit{
+  constructor(
+  private supabaseService: SupabaseService
+) {}
 
   showSheet = false;
+  categories: any[] = [];
+  newCategoryName = '';
+
+newCategoryIcon = '';
 
 activeForm:
   | 'menu'
@@ -19,14 +28,34 @@ activeForm:
   | 'subcategory'
   | 'budget'
 = 'menu';
-categories = [
-  { id: 1, name: 'Food', icon: '🍔' },
-  { id: 2, name: 'Travel', icon: '⛽' },
-  { id: 3, name: 'Shopping', icon: '🛍' },
-  { id: 4, name: 'Rent', icon: '🏠' },
-  { id: 5, name: 'EMI', icon: '💳' },
-  { id: 6, name: 'Utilities', icon: '⚡' }
-];
 
 selectedCategory: number | null = null;
+async ngOnInit() {
+
+  this.categories =
+    await this.supabaseService.getCategories();
+
+  console.log(this.categories);
+
+}
+async saveCategory() {
+
+  if (!this.newCategoryName) {
+    return;
+  }
+
+  await this.supabaseService.addCategory(
+    this.newCategoryName,
+    this.newCategoryIcon
+  );
+
+  this.categories =
+    await this.supabaseService.getCategories();
+
+  this.newCategoryName = '';
+  this.newCategoryIcon = '';
+
+  this.activeForm = 'menu';
+
+}
 }
