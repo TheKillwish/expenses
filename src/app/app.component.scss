@@ -1,0 +1,47 @@
+/* Reset */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  background: #09090b;
+  color: white;
+
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+}
+
+/* Smooth scroll */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f0f13;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 20px;
+}

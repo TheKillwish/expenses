@@ -1,0 +1,368 @@
+<div class="dashboard">
+
+  <header class="header">
+    <div>
+      <p class="month">June 2026</p>
+      <h1>Expense Tracker</h1>
+    </div>
+
+    <div class="avatar">
+      AK
+    </div>
+  </header>
+
+  <!-- Main Budget Card -->
+  <section class="budget-card">
+
+    <div class="budget-top">
+      <span>Monthly Budget</span>
+      <h2>₹80,000</h2>
+    </div>
+
+    <div class="budget-stats">
+
+      <div>
+        <p>Spent</p>
+        <h3>₹18,500</h3>
+      </div>
+
+      <div>
+        <p>Remaining</p>
+        <h3>₹61,500</h3>
+      </div>
+
+    </div>
+
+    <div class="progress">
+      <div class="progress-fill" style="width:23%"></div>
+    </div>
+
+    <div class="progress-text">
+      23% of budget used
+    </div>
+
+  </section>
+
+  <!-- Today Card -->
+
+  <section class="today-card">
+
+    <span>Today's Spend</span>
+
+    <h2>₹450</h2>
+
+  </section>
+
+  <!-- Categories -->
+
+  <section class="section">
+
+    <div class="section-header">
+      <h3>Categories</h3>
+    </div>
+
+    <div class="category">
+
+      <div class="row">
+        <span>🏠 Rent</span>
+        <span>₹20,000 / ₹25,000</span>
+      </div>
+
+      <div class="mini-progress">
+        <div class="fill" style="width:80%"></div>
+      </div>
+
+    </div>
+
+    <div class="category">
+
+      <div class="row">
+        <span>🛒 Grocery</span>
+        <span>₹4,000 / ₹10,000</span>
+      </div>
+
+      <div class="mini-progress">
+        <div class="fill" style="width:40%"></div>
+      </div>
+
+    </div>
+
+    <div class="category">
+
+      <div class="row">
+        <span>🍔 Dining</span>
+        <span>₹4,600 / ₹5,000</span>
+      </div>
+
+      <div class="mini-progress">
+        <div class="fill warning" style="width:92%"></div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- Recent Expenses -->
+
+  <section class="section">
+
+    <div class="section-header">
+      <h3>Recent Expenses</h3>
+    </div>
+
+    <div class="expense-item">
+      <span>Zomato</span>
+      <strong>₹450</strong>
+    </div>
+
+    <div class="expense-item">
+      <span>Petrol</span>
+      <strong>₹1,500</strong>
+    </div>
+
+    <div class="expense-item">
+      <span>DMart</span>
+      <strong>₹2,200</strong>
+    </div>
+
+  </section>
+
+  <button
+  class="add-expense-btn"
+  (click)="showSheet=true; activeForm='menu'">
+
+  + Add
+</button>
+
+</div>
+<app-bottom-sheet
+  [visible]="showSheet"
+  (closed)="showSheet = false">
+  <!-- MENU -->
+
+<div *ngIf="activeForm === 'menu'">
+
+  <h2 class="sheet-title">
+    What would you like to add?
+  </h2>
+
+  <div class="action-grid">
+
+    <button
+      class="action-card"
+      (click)="activeForm='expense'">
+
+      💸
+      <span>Expense</span>
+    </button>
+
+    <button
+      class="action-card"
+      (click)="activeForm='category'">
+
+      📁
+      <span>Category</span>
+    </button>
+
+    <button
+      class="action-card"
+      (click)="activeForm='subcategory'">
+
+      📂
+      <span>Subcategory</span>
+    </button>
+
+    <button
+      class="action-card"
+      (click)="activeForm='budget'">
+
+      🎯
+      <span>Budget</span>
+    </button>
+
+  </div>
+
+</div>
+<div *ngIf="activeForm === 'expense'">
+
+  <button
+    class="back-btn"
+    (click)="activeForm='menu'">
+
+    ← Back
+  </button>
+
+  <h2>Add Expense</h2>
+
+  <div class="form-group">
+
+  <label>Category</label>
+
+  <div class="chip-container">
+
+    <button
+      *ngFor="let category of categories"
+      type="button"
+      class="chip"
+      [class.selected]="selectedCategory === category.id"
+      (click)="selectedCategory = category.id">
+
+      {{category.icon}}
+      {{category.name}}
+
+    </button>
+
+  </div>
+
+</div>
+
+
+  <div class="form-group">
+
+    <label>Subcategory</label>
+
+    <select>
+
+      <option>Dining Out</option>
+      <option>Grocery</option>
+
+    </select>
+
+  </div>
+
+  <div class="form-group">
+
+    <label>Notes</label>
+
+    <input
+      type="text"
+      placeholder="Optional">
+
+  </div>
+
+  <button class="save-btn">
+
+    Save Expense
+
+  </button>
+
+</div>
+<div *ngIf="activeForm === 'category'">
+
+  <button
+    class="back-btn"
+    (click)="activeForm='menu'">
+    ← Back
+  </button>
+
+  <h2>Add Category</h2>
+
+  <div class="form-group">
+    <label>Category Name</label>
+
+    <input
+      type="text"
+      placeholder="e.g. Food">
+  </div>
+
+  <div class="form-group">
+    <label>Icon</label>
+
+    <input
+      type="text"
+      placeholder="🍔">
+  </div>
+
+  <button class="save-btn">
+    Save Category
+  </button>
+
+</div>
+<div *ngIf="activeForm === 'subcategory'">
+
+  <button
+    class="back-btn"
+    (click)="activeForm='menu'">
+    ← Back
+  </button>
+
+  <h2>Add Subcategory</h2>
+
+  <div class="form-group">
+
+    <label>Parent Category</label>
+
+    <select>
+      <option>Food</option>
+      <option>Travel</option>
+      <option>Shopping</option>
+      <option>Utilities</option>
+    </select>
+
+  </div>
+
+  <div class="form-group">
+
+    <label>Subcategory Name</label>
+
+    <input
+      type="text"
+      placeholder="e.g. Grocery">
+
+  </div>
+
+  <button class="save-btn">
+    Save Subcategory
+  </button>
+
+</div>
+<div *ngIf="activeForm === 'budget'">
+
+  <button
+    class="back-btn"
+    (click)="activeForm='menu'">
+    ← Back
+  </button>
+
+  <h2>Create Budget</h2>
+
+  <div class="form-group">
+
+    <label>Category</label>
+
+    <select>
+      <option>Food</option>
+      <option>Travel</option>
+      <option>Shopping</option>
+      <option>Utilities</option>
+    </select>
+
+  </div>
+
+  <div class="form-group">
+
+    <label>Monthly Budget</label>
+
+    <input
+      type="number"
+      placeholder="10000">
+
+  </div>
+
+  <div class="form-group">
+
+    <label>Alert Threshold (%)</label>
+
+    <input
+      type="number"
+      placeholder="80">
+
+  </div>
+
+  <button class="save-btn">
+    Save Budget
+  </button>
+
+</div>
+
+</app-bottom-sheet>

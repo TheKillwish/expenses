@@ -1,0 +1,47 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,.55);
+
+  display: flex;
+  align-items: flex-end;
+
+  z-index: 1000;
+}
+
+.sheet {
+  width: 100%;
+
+  background: #171a21;
+
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+
+  padding: 20px;
+
+  min-height: 280px;
+
+  animation: slideUp .25s ease;
+}
+
+.handle {
+  width: 50px;
+  height: 5px;
+
+  background: #3b4353;
+
+  border-radius: 999px;
+
+  margin: 0 auto 20px;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}

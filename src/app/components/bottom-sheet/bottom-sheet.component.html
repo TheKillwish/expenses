@@ -1,0 +1,16 @@
+<div
+  class="backdrop"
+  *ngIf="visible"
+  (click)="close()">
+
+  <div
+    class="sheet"
+    (click)="$event.stopPropagation()">
+
+    <div class="handle"></div>
+
+    <ng-content></ng-content>
+
+  </div>
+
+</div>
