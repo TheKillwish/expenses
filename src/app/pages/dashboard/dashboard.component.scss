@@ -295,3 +295,92 @@
   background: #4f8cff;
   border-color: #4f8cff;
 }
+.delete-text {
+
+  margin-top: 16px;
+
+  color: #9aa4b2;
+
+  line-height: 1.6;
+
+}
+
+.delete-actions {
+
+  display: flex;
+
+  gap: 12px;
+
+  margin-top: 24px;
+
+}
+
+.cancel-btn,
+.delete-btn {
+
+  flex: 1;
+
+  height: 48px;
+
+  border-radius: 12px;
+
+}
+
+.delete-btn {
+
+  background: #ef4444;
+
+  color: white;
+
+  border: none;
+
+}
+.chip-container {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 12px;
+
+}
+
+.chip-wrapper {
+
+  position: relative;
+
+}
+
+.chip-delete {
+
+  position: absolute;
+
+  top: -6px;
+
+  right: -6px;
+
+  width: 18px;
+
+  height: 18px;
+
+  border-radius: 50%;
+
+  background: #ef4444;
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  cursor: pointer;
+
+  z-index: 10;
+
+}

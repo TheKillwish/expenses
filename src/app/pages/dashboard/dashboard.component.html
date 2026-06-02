@@ -2,7 +2,10 @@
 
   <header class="header">
     <div>
-      <p class="month">June 2026</p>
+      <p class="month">
+        {{ today | date:'MMMM yyyy' }}
+      </p>
+
       <h1>Expense Tracker</h1>
     </div>
 
@@ -11,45 +14,74 @@
     </div>
   </header>
 
-  <!-- Main Budget Card -->
+  <!-- Monthly Budget -->
+
   <section class="budget-card">
 
     <div class="budget-top">
       <span>Monthly Budget</span>
-      <h2>₹80,000</h2>
+
+      <h2>
+        ₹{{ totalBudget | number:'1.0-0' }}
+      </h2>
     </div>
 
     <div class="budget-stats">
 
       <div>
         <p>Spent</p>
-        <h3>₹18,500</h3>
+
+        <h3>
+          ₹{{ totalSpent | number:'1.0-0' }}
+        </h3>
       </div>
 
       <div>
         <p>Remaining</p>
-        <h3>₹61,500</h3>
+
+        <h3>
+          ₹{{ remainingBudget | number:'1.0-0' }}
+        </h3>
       </div>
 
     </div>
 
     <div class="progress">
-      <div class="progress-fill" style="width:23%"></div>
+
+      <div
+        class="progress-fill"
+        [style.width.%]="
+          totalBudget
+            ? (totalSpent * 100 / totalBudget)
+            : 0
+        ">
+      </div>
+
     </div>
 
     <div class="progress-text">
-      23% of budget used
+
+      {{
+        totalBudget
+          ? ((totalSpent * 100 / totalBudget).toFixed(0))
+          : 0
+      }}%
+
+      of budget used
+
     </div>
 
   </section>
 
-  <!-- Today Card -->
+  <!-- Today's Spend -->
 
   <section class="today-card">
 
     <span>Today's Spend</span>
 
-    <h2>₹450</h2>
+    <h2>
+      ₹{{ todaySpent | number:'1.0-0' }}
+    </h2>
 
   </section>
 
@@ -61,41 +93,39 @@
       <h3>Categories</h3>
     </div>
 
-    <div class="category">
+    <div
+      class="category"
+      *ngFor="let category of categorySummary">
 
       <div class="row">
-        <span>🏠 Rent</span>
-        <span>₹20,000 / ₹25,000</span>
+
+        <span>
+
+          {{ category.icon }}
+          {{ category.name }}
+
+        </span>
+
+        <span>
+
+          ₹{{ category.spent | number:'1.0-0' }}
+
+          /
+
+          ₹{{ category.monthly_budget | number:'1.0-0' }}
+
+        </span>
+
       </div>
 
       <div class="mini-progress">
-        <div class="fill" style="width:80%"></div>
-      </div>
 
-    </div>
+        <div
+          class="fill"
+          [class.warning]="category.percentage >= category.alert_threshold"
+          [style.width.%]="category.percentage">
+        </div>
 
-    <div class="category">
-
-      <div class="row">
-        <span>🛒 Grocery</span>
-        <span>₹4,000 / ₹10,000</span>
-      </div>
-
-      <div class="mini-progress">
-        <div class="fill" style="width:40%"></div>
-      </div>
-
-    </div>
-
-    <div class="category">
-
-      <div class="row">
-        <span>🍔 Dining</span>
-        <span>₹4,600 / ₹5,000</span>
-      </div>
-
-      <div class="mini-progress">
-        <div class="fill warning" style="width:92%"></div>
       </div>
 
     </div>
@@ -110,29 +140,51 @@
       <h3>Recent Expenses</h3>
     </div>
 
-    <div class="expense-item">
-      <span>Zomato</span>
-      <strong>₹450</strong>
-    </div>
+    <div
+      class="expense-item"
+      *ngFor="let expense of expenses | slice:0:10">
 
-    <div class="expense-item">
-      <span>Petrol</span>
-      <strong>₹1,500</strong>
-    </div>
+      <div>
 
-    <div class="expense-item">
-      <span>DMart</span>
-      <strong>₹2,200</strong>
+        <div>
+
+          {{
+            expense.categories?.icon || '💸'
+          }}
+
+          {{
+            expense.description || 'Expense'
+          }}
+
+        </div>
+
+        <small>
+
+          {{
+            expense.categories?.name
+          }}
+
+        </small>
+
+      </div>
+
+      <strong>
+
+        ₹{{ expense.amount }}
+
+      </strong>
+
     </div>
 
   </section>
 
   <button
-  class="add-expense-btn"
-  (click)="showSheet=true; activeForm='menu'">
+    class="add-expense-btn"
+    (click)="showSheet=true; activeForm='menu'">
 
-  + Add
-</button>
+    + Add
+
+  </button>
 
 </div>
 <app-bottom-sheet
@@ -200,51 +252,108 @@
 
   <div class="chip-container">
 
-    <button
-      *ngFor="let category of categories"
-      type="button"
-      class="chip"
-      [class.selected]="selectedCategory === category.id"
-      (click)="selectedCategory = category.id">
+   <div
+  *ngFor="let category of categories"
+  class="chip-wrapper">
 
-      {{category.icon}}
-      {{category.name}}
+  <button
+    type="button"
+    class="chip"
+    [class.selected]="selectedCategory === category.id"
+    (click)="selectCategory(category.id)">
 
-    </button>
+    {{category.icon}}
+    {{category.name}}
+
+  </button>
+
+  <span
+    class="chip-delete"
+    (click)="openDeleteDialog('category', category); $event.stopPropagation()">
+
+    ×
+
+  </span>
+
+</div>
 
   </div>
 
 </div>
 
 
-  <div class="form-group">
+  <div
+  class="form-group"
+  *ngIf="subcategories.length">
 
-    <label>Subcategory</label>
+  <label>Subcategory</label>
 
-    <select>
+  <div class="chip-container">
 
-      <option>Dining Out</option>
-      <option>Grocery</option>
+    <div
+  *ngFor="let sub of subcategories"
+  class="chip-wrapper">
 
-    </select>
+  <button
+    type="button"
+    class="chip"
+    [class.selected]="selectedSubcategory === sub.id"
+    (click)="selectedSubcategory = sub.id">
 
-  </div>
-
-  <div class="form-group">
-
-    <label>Notes</label>
-
-    <input
-      type="text"
-      placeholder="Optional">
-
-  </div>
-
-  <button class="save-btn">
-
-    Save Expense
+    {{sub.icon}}
+    {{sub.name}}
 
   </button>
+
+  <span
+    class="chip-delete"
+    (click)="openDeleteDialog('subcategory', sub); $event.stopPropagation()">
+
+    ×
+
+  </span>
+
+</div>
+
+  </div>
+
+</div>
+
+  <div class="form-group">
+
+  <label>Amount</label>
+
+  <input
+    type="number"
+    [(ngModel)]="expenseAmount"
+    placeholder="500">
+
+</div>
+<div class="form-group">
+
+  <label>Description</label>
+
+  <input
+    [(ngModel)]="expenseDescription"
+    placeholder="Zomato">
+
+</div>
+<div class="form-group">
+
+  <label>Date</label>
+
+  <input
+    type="date">
+
+</div>
+
+  <button
+  class="save-btn"
+  (click)="saveExpense()">
+
+  Save Expense
+
+</button>
 
 </div>
 <div *ngIf="activeForm === 'category'">
@@ -291,21 +400,32 @@
   <button
     class="back-btn"
     (click)="activeForm='menu'">
+
     ← Back
+
   </button>
 
   <h2>Add Subcategory</h2>
 
   <div class="form-group">
 
-    <label>Parent Category</label>
+    <label>Select Category</label>
 
-    <select>
-      <option>Food</option>
-      <option>Travel</option>
-      <option>Shopping</option>
-      <option>Utilities</option>
-    </select>
+    <div class="chip-container">
+
+      <button
+        *ngFor="let category of categories"
+        type="button"
+        class="chip"
+        [class.selected]="selectedCategoryForSubcategory === category.id"
+        (click)="selectedCategoryForSubcategory = category.id">
+
+        {{category.icon}}
+        {{category.name}}
+
+      </button>
+
+    </div>
 
   </div>
 
@@ -314,13 +434,27 @@
     <label>Subcategory Name</label>
 
     <input
-      type="text"
-      placeholder="e.g. Grocery">
+      [(ngModel)]="newSubcategoryName"
+      placeholder="Grocery">
 
   </div>
 
-  <button class="save-btn">
+  <div class="form-group">
+
+    <label>Icon</label>
+
+    <input
+      [(ngModel)]="newSubcategoryIcon"
+      placeholder="🛒">
+
+  </div>
+
+  <button
+    class="save-btn"
+    (click)="saveSubcategory()">
+
     Save Subcategory
+
   </button>
 
 </div>
@@ -332,45 +466,122 @@
     ← Back
   </button>
 
-  <h2>Create Budget</h2>
+  <h2>Manage Budget</h2>
 
   <div class="form-group">
 
     <label>Category</label>
 
-    <select>
-      <option>Food</option>
-      <option>Travel</option>
-      <option>Shopping</option>
-      <option>Utilities</option>
-    </select>
+    <div class="chip-container">
+
+      <button
+        *ngFor="let category of categories"
+        type="button"
+        class="chip"
+        [class.selected]="selectedBudgetCategory?.id === category.id"
+        (click)="selectBudgetCategory(category)">
+
+        {{category.icon}}
+        {{category.name}}
+
+      </button>
+
+    </div>
 
   </div>
 
-  <div class="form-group">
+  <div *ngIf="selectedBudgetCategory">
 
-    <label>Monthly Budget</label>
+    <div class="form-group">
 
-    <input
-      type="number"
-      placeholder="10000">
+      <label>Monthly Budget</label>
+
+      <input
+        type="number"
+        [(ngModel)]="budgetAmount">
+
+    </div>
+
+    <div class="form-group">
+
+      <label>Alert Threshold (%)</label>
+
+      <input
+        type="number"
+        [(ngModel)]="budgetThreshold">
+
+    </div>
+
+    <button
+      class="save-btn"
+      (click)="saveBudget()">
+
+      Save Budget
+
+    </button>
 
   </div>
 
-  <div class="form-group">
+</div>
+<div *ngIf="activeForm === 'delete'">
 
-    <label>Alert Threshold (%)</label>
+  <h2>
 
-    <input
-      type="number"
-      placeholder="80">
+    Delete {{ deleteType }}?
+
+  </h2>
+
+  <p class="delete-text">
+
+    <ng-container *ngIf="deleteType === 'category'">
+
+      This will delete:
+
+      • Category
+
+      • All subcategories
+
+      • All related expenses
+
+    </ng-container>
+
+    <ng-container *ngIf="deleteType === 'subcategory'">
+
+      This will delete the subcategory
+      and all related expenses.
+
+    </ng-container>
+
+    <ng-container *ngIf="deleteType === 'expense'">
+
+      This action cannot be undone.
+
+    </ng-container>
+
+  </p>
+
+  <div class="delete-actions">
+
+    <button
+      class="cancel-btn"
+      (click)="activeForm='menu'">
+
+      Cancel
+
+    </button>
+
+    <button
+      class="delete-btn"
+      (click)="confirmDelete()">
+
+      Delete
+
+    </button>
 
   </div>
-
-  <button class="save-btn">
-    Save Budget
-  </button>
 
 </div>
 
 </app-bottom-sheet>
+
+
