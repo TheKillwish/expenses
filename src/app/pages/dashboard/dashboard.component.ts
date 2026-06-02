@@ -102,6 +102,7 @@ async saveCategory() {
   this.newCategoryIcon = '';
   
   this.activeForm = 'menu';
+  await this.loadDashboard();
 
 }
 async selectCategory(categoryId: number) {
@@ -137,6 +138,7 @@ async saveSubcategory() {
   this.selectedCategoryForSubcategory = null;
 
   this.activeForm = 'menu';
+  await this.loadDashboard();
 
 }
 async saveExpense() {
@@ -163,7 +165,7 @@ async saveExpense() {
 
     });
 
-  alert('Expense Added');
+  // alert('Expense Added');
 
   this.expenseAmount = 0;
 
@@ -174,6 +176,7 @@ async saveExpense() {
   this.selectedSubcategory = null;
 
   this.activeForm = 'menu';
+  await this.loadDashboard();
 
 }
 selectBudgetCategory(category: any) {
