@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { createClient } from '@supabase/supabase-js';
 
 import { environment } from '../../environments/environment';
-
 @Injectable({
   providedIn: 'root'
 })
@@ -14,12 +13,17 @@ export class SupabaseService {
   );
 
 
-  async getCategories() {
+ async getCategories() {
 
-  const { data, error } = await this.supabase
-    .from('categories')
-    .select('*')
-    .order('name');
+  const userId =
+  await this.getCurrentUserId();
+
+  const { data, error } =
+    await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', userId)
+      .order('name');
 
   if (error) {
     console.error(error);
@@ -33,13 +37,17 @@ async addCategory(
   icon: string
 ) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('categories')
       .insert([
         {
           name,
-          icon
+          icon,
+          user_id: userId
         }
       ])
       .select();
@@ -55,11 +63,15 @@ async getSubcategories(
   categoryId: number
 ) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('subcategories')
       .select('*')
       .eq('category_id', categoryId)
+      .eq('user_id', userId)
       .order('name');
 
   if (error) {
@@ -75,6 +87,9 @@ async addSubcategory(
   icon: string
 ) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('subcategories')
@@ -82,7 +97,8 @@ async addSubcategory(
         {
           category_id: categoryId,
           name,
-          icon
+          icon,
+          user_id: userId
         }
       ])
       .select();
@@ -96,10 +112,18 @@ async addSubcategory(
 }
 async addExpense(expense: any) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('expenses')
-      .insert([expense])
+      .insert([
+        {
+          ...expense,
+          user_id: userId
+        }
+      ])
       .select();
 
   if (error) {
@@ -115,6 +139,9 @@ async updateCategoryBudget(
   alertThreshold: number
 ) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('categories')
@@ -123,6 +150,7 @@ async updateCategoryBudget(
         alert_threshold: alertThreshold
       })
       .eq('id', categoryId)
+      .eq('user_id', userId)
       .select();
 
   if (error) {
@@ -134,19 +162,27 @@ async updateCategoryBudget(
 }
 async getExpenses() {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { data, error } =
     await this.supabase
       .from('expenses')
       .select(`
         *,
         categories (
+          id,
           name,
           icon
         )
       `)
-      .order('created_at', {
-        ascending: false
-      });
+      .eq('user_id', userId)
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      );
 
   if (error) {
     console.error(error);
@@ -157,11 +193,15 @@ async getExpenses() {
 }
 async deleteCategory(id: number) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { error } =
     await this.supabase
       .from('categories')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
   if (error) {
     console.error(error);
@@ -170,11 +210,15 @@ async deleteCategory(id: number) {
 }
 async deleteSubcategory(id: number) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { error } =
     await this.supabase
       .from('subcategories')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
   if (error) {
     console.error(error);
@@ -183,15 +227,30 @@ async deleteSubcategory(id: number) {
 }
 async deleteExpense(id: number) {
 
+  const userId =
+  await this.getCurrentUserId();
+
   const { error } =
     await this.supabase
       .from('expenses')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
   if (error) {
     console.error(error);
   }
 
 }
+async getCurrentUserId() {
+
+  const {
+    data: { user }
+  } =
+    await this.supabase.auth.getUser();
+
+  return user?.id;
+
+}
+
 }

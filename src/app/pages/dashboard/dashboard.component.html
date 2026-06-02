@@ -2,16 +2,63 @@
 
   <header class="header">
     <div>
-      <p class="month">
-        {{ today | date:'MMMM yyyy' }}
-      </p>
+    <p class="month">{{ currentMonth }}</p>
+    <h1>Expense Tracker</h1>
+  </div>
+  <div
+  class="user-profile"
+  (click)="showUserMenu = !showUserMenu">
 
-      <h1>Expense Tracker</h1>
-    </div>
+  <img
+    *ngIf="user?.user_metadata?.avatar_url"
+    [src]="user.user_metadata.avatar_url"
+    alt="Profile">
 
-    <div class="avatar">
-      AK
-    </div>
+  <div
+    *ngIf="!user?.user_metadata?.avatar_url"
+    class="avatar">
+
+    {{
+      user?.user_metadata?.full_name
+      ?.charAt(0)
+    }}
+
+  </div>
+
+</div>
+
+  <div
+  class="user-menu"
+  *ngIf="showUserMenu">
+
+  <div class="user-info">
+
+    <strong>
+
+      {{
+        user?.user_metadata?.full_name
+      }}
+
+    </strong>
+
+    <small>
+
+      {{ user?.email }}
+
+    </small>
+
+  </div>
+
+  <button
+    class="logout-btn"
+    (click)="logout()">
+
+    Logout
+
+  </button>
+
+</div>
+
   </header>
 
   <!-- Monthly Budget -->

@@ -3,6 +3,8 @@ import { BottomSheetComponent } from '../../components/bottom-sheet/bottom-sheet
 import { DatePipe, DecimalPipe, NgFor, NgIf, SlicePipe } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -14,7 +16,9 @@ import { FormsModule } from '@angular/forms';
 })
 export class DashboardComponent implements OnInit{
   constructor(
-  private supabaseService: SupabaseService
+  private supabaseService: SupabaseService,
+  private authService: AuthService,
+   private router: Router
 ) {}
 
   showSheet = false;
@@ -65,6 +69,9 @@ subcategories: any[] = [];
 selectedSubcategory: number | null = null;
 
 showDeleteDialog = false;
+user: any = null;
+
+showUserMenu = false;
 
 deleteType:
   'category'
@@ -73,14 +80,38 @@ deleteType:
   | null = null;
 
 selectedDeleteItem: any = null;
-
+currentMonth =
+  new Date().toLocaleDateString(
+    'en-IN',
+    {
+      month: 'long',
+      year: 'numeric'
+    }
+  );
 
 async ngOnInit() {
 
-  this.categories =
-    await this.supabaseService.getCategories();
+  const user =
+    await this.authService.getUser();
 
-  console.log(this.categories);
+  if (!user) {
+
+    await this.router.navigate(['/']);
+
+    return;
+
+  }
+  this.user =
+    await this.authService
+      .getUserProfile();
+
+  await this.loadDashboard();
+
+console.log(this.user);
+  console.log('Logged In User');
+
+  console.log(user);
+
   await this.loadDashboard();
 
 }
@@ -391,6 +422,20 @@ cancelDelete() {
   this.showDeleteDialog = false;
 
   this.selectedDeleteItem = null;
+
+}
+async login() {
+
+  await this.authService
+    .signInWithGoogle();
+
+}
+async logout() {
+
+  await this.supabaseService.supabase
+    .auth.signOut();
+
+  await this.router.navigate(['/']);
 
 }
 }
