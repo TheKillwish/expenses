@@ -1,21 +1,150 @@
 <div class="login-page">
 
-  <div class="login-card">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
 
-    <h1>Expense Tracker</h1>
+  <div class="login-container">
 
-    <p>
-      Track budgets, expenses
-      and financial goals.
-    </p>
+    <!-- LEFT PANEL -->
 
-    <button
-      class="google-btn"
-      (click)="login()">
+    <div class="left-panel">
 
-      Continue with Google
+      <div class="brand-section">
 
-    </button>
+        <div class="logo-circle">
+          ₹
+        </div>
+
+        <h1>Rezu Expenses</h1>
+
+        <p class="subtitle">
+          Smart budgeting, expense tracking
+          and financial clarity.
+        </p>
+
+      </div>
+
+      <div class="feature-cards">
+
+        <div class="feature-card">
+          <span class="emoji">📊</span>
+          <div>
+            <h3>Budget Tracking</h3>
+            <p>Stay on top of your monthly spending goals.</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <span class="emoji">💰</span>
+          <div>
+            <h3>Expense Insights</h3>
+            <p>Understand where every rupee goes.</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <span class="emoji">🎯</span>
+          <div>
+            <h3>Financial Goals</h3>
+            <p>Build better spending habits effortlessly.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+
+    <div class="login-card">
+
+      <div class="preview-card">
+
+        <div class="preview-row">
+          <span>Monthly Budget</span>
+          <strong>₹50,000</strong>
+        </div>
+
+        <div class="preview-progress">
+          <div class="fill"></div>
+        </div>
+
+        <div class="preview-row small">
+          <span>Spent</span>
+          <span>₹18,200</span>
+        </div>
+
+      </div>
+
+      <button
+        class="google-btn"
+        (click)="login()">
+
+        <img
+          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
+
+        Continue with Google
+
+      </button>
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <input
+        class="auth-input"
+        [(ngModel)]="email"
+        type="email"
+        placeholder="Email Address">
+
+      <!-- <input
+        *ngIf="authMode !== 'magic-link'"
+        class="auth-input"
+        [(ngModel)]="password"
+        type="password"
+        placeholder="Password"> -->
+
+      <button
+        class="primary-btn"
+        (click)="continueAuth()">
+        Send Magic Link
+
+      </button>
+
+      <div class="auth-links">
+
+        <!-- <button
+          [class.active]="authMode==='email-login'"
+          (click)="authMode='email-login'">
+
+          Login
+
+        </button>
+
+        <button
+          [class.active]="authMode==='email-signup'"
+          (click)="authMode='email-signup'">
+
+          Sign Up
+
+        </button> -->
+
+        <!-- <button
+          [class.active]="authMode==='magic-link'"
+          (click)="authMode='magic-link'">
+
+          Magic Link
+
+        </button> -->
+
+      </div>
+
+      <div class="footer-text">
+        Secure authentication powered by Supabase
+      </div>
+
+    </div>
 
   </div>
 

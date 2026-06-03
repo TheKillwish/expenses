@@ -1,0 +1,46 @@
+<div
+  class="toast"
+  [ngClass]="type">
+
+  <div class="icon">
+
+    <ng-container
+      [ngSwitch]="type">
+
+      <span *ngSwitchCase="'success'">
+        ✅
+      </span>
+
+      <span *ngSwitchCase="'error'">
+        ❌
+      </span>
+
+      <span *ngSwitchDefault>
+        ℹ️
+      </span>
+
+    </ng-container>
+
+  </div>
+
+  <div class="content">
+
+    <h4>
+
+      {{
+        type === 'success'
+          ? 'Success'
+          : type === 'error'
+          ? 'Error'
+          : 'Info'
+      }}
+
+    </h4>
+
+    <p>
+      {{ message }}
+    </p>
+
+  </div>
+
+</div>

@@ -5,6 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { UiService } from '../../services/ui.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -18,12 +19,15 @@ export class DashboardComponent implements OnInit{
   constructor(
   private supabaseService: SupabaseService,
   private authService: AuthService,
-   private router: Router
+   private router: Router,
+   private uiService: UiService
 ) {}
-
+avatarError = false;
+visibleExpenses = 5;
   showSheet = false;
   categories: any[] = [];
   newCategoryName = '';
+  editingExpense: any = null;
   
 
 newCategoryIcon = '';
@@ -79,6 +83,12 @@ deleteType:
   | 'expense'
   | null = null;
 
+deleteId: number | null = null;
+expenseDate =
+  new Date()
+    .toISOString()
+    .split('T')[0];
+
 selectedDeleteItem: any = null;
 currentMonth =
   new Date().toLocaleDateString(
@@ -91,8 +101,12 @@ currentMonth =
 
 async ngOnInit() {
 
+  console.log('DASHBOARD INIT');
+
   const user =
     await this.authService.getUser();
+
+  console.log('USER:', user);
 
   if (!user) {
 
@@ -101,16 +115,56 @@ async ngOnInit() {
     return;
 
   }
+
+  let profile =
+    await this.supabaseService
+      .getProfile();
+
+  console.log(
+    'PROFILE FOUND:',
+    profile
+  );
+
+  if (!profile) {
+
+    console.log(
+      'CREATING PROFILE'
+    );
+
+    profile =
+      await this.supabaseService
+        .createProfile();
+
+    console.log(
+      'PROFILE CREATED:',
+      profile
+    );
+
+  }
+
+  if (
+    !profile?.onboarding_completed
+  ) {
+
+    console.log(
+      'GO TO ONBOARDING'
+    );
+
+    await this.router.navigate([
+      '/onboarding'
+    ]);
+
+    return;
+
+  }
+
+  console.log(
+    'LOAD DASHBOARD'
+  );
+
   this.user =
     await this.authService
       .getUserProfile();
-
-  await this.loadDashboard();
-
-console.log(this.user);
-  console.log('Logged In User');
-
-  console.log(user);
 
   await this.loadDashboard();
 
@@ -118,22 +172,61 @@ console.log(this.user);
 async saveCategory() {
 
   if (!this.newCategoryName) {
+
+    this.uiService.showToast(
+      'Please enter a category name',
+      'error'
+    );
+
     return;
+
   }
 
-  await this.supabaseService.addCategory(
-    this.newCategoryName,
-    this.newCategoryIcon
-  );
+  this.uiService.showLoader();
 
-  this.categories =
-    await this.supabaseService.getCategories();
+  try {
 
-  this.newCategoryName = '';
-  this.newCategoryIcon = '';
-  
-  this.activeForm = 'menu';
-  await this.loadDashboard();
+    await this.supabaseService
+      .addCategory(
+        this.newCategoryName,
+        this.newCategoryIcon
+      );
+
+    this.categories =
+      await this.supabaseService
+        .getCategories();
+
+    this.newCategoryName = '';
+
+    this.newCategoryIcon = '';
+
+    this.activeForm = 'menu';
+
+    await this.loadDashboard();
+
+    this.uiService.showToast(
+      'Category created successfully',
+      'success'
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Failed to create category',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
 
 }
 async selectCategory(categoryId: number) {
@@ -153,61 +246,153 @@ async saveSubcategory() {
     !this.selectedCategoryForSubcategory ||
     !this.newSubcategoryName
   ) {
-    return;
-  }
 
-  await this.supabaseService
-    .addSubcategory(
-      this.selectedCategoryForSubcategory,
-      this.newSubcategoryName,
-      this.newSubcategoryIcon
+    this.uiService.showToast(
+      'Please select a category and enter a subcategory name',
+      'error'
     );
 
-  this.newSubcategoryName = '';
-  this.newSubcategoryIcon = '';
+    return;
 
-  this.selectedCategoryForSubcategory = null;
+  }
 
-  this.activeForm = 'menu';
-  await this.loadDashboard();
+  this.uiService.showLoader();
+
+  try {
+
+    await this.supabaseService
+      .addSubcategory(
+        this.selectedCategoryForSubcategory,
+        this.newSubcategoryName,
+        this.newSubcategoryIcon
+      );
+
+    this.newSubcategoryName = '';
+
+    this.newSubcategoryIcon = '';
+
+    this.selectedCategoryForSubcategory = null;
+
+    this.activeForm = 'menu';
+
+    await this.loadDashboard();
+
+    this.uiService.showToast(
+      'Subcategory created successfully',
+      'success'
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Failed to create subcategory',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
 
 }
 async saveExpense() {
 
-  if (
-    !this.expenseAmount ||
-    !this.selectedCategory
-  ) {
-    return;
+  this.uiService.showLoader();
+
+  try {
+
+    if (this.editingExpense) {
+
+      await this.supabaseService
+        .updateExpense({
+
+          id:
+            this.editingExpense.id,
+
+          category_id:
+            this.selectedCategory,
+
+          subcategory_id:
+            this.selectedSubcategory,
+
+          amount:
+            this.expenseAmount,
+
+          description:
+            this.expenseDescription,
+
+          expense_date:
+            this.expenseDate
+
+        });
+
+      this.uiService.showToast(
+        'Expense updated successfully',
+        'success'
+      );
+
+    }
+
+    else {
+
+      await this.supabaseService
+        .addExpense({
+
+          category_id:
+            this.selectedCategory,
+
+          subcategory_id:
+            this.selectedSubcategory,
+
+          amount:
+            this.expenseAmount,
+
+          description:
+            this.expenseDescription,
+
+          expense_date:
+            this.expenseDate
+
+        });
+
+      this.uiService.showToast(
+        'Expense added successfully',
+        'success'
+      );
+
+    }
+
+    this.editingExpense = null;
+
+    this.showSheet = false;
+
+    await this.loadDashboard();
+
   }
 
-  await this.supabaseService
-    .addExpense({
+  catch (error) {
 
-      amount: this.expenseAmount,
+    console.error(error);
 
-      category_id: this.selectedCategory,
+    this.uiService.showToast(
+      'Failed to save expense',
+      'error'
+    );
 
-      subcategory_id:
-        this.selectedSubcategory,
+  }
 
-      description:
-        this.expenseDescription
+  finally {
 
-    });
+    this.uiService.hideLoader();
 
-  // alert('Expense Added');
-
-  this.expenseAmount = 0;
-
-  this.expenseDescription = '';
-
-  this.selectedCategory = null;
-
-  this.selectedSubcategory = null;
-
-  this.activeForm = 'menu';
-  await this.loadDashboard();
+  }
 
 }
 selectBudgetCategory(category: any) {
@@ -224,34 +409,105 @@ selectBudgetCategory(category: any) {
 async saveBudget() {
 
   if (!this.selectedBudgetCategory) {
-    return;
-  }
 
-  await this.supabaseService
-    .updateCategoryBudget(
-      this.selectedBudgetCategory.id,
-      this.budgetAmount,
-      this.budgetThreshold
+    this.uiService.showToast(
+      'Please select a category',
+      'error'
     );
 
-  this.categories =
-    await this.supabaseService
-      .getCategories();
+    return;
 
-  this.activeForm = 'menu';
+  }
+
+  this.uiService.showLoader();
+
+  try {
+
+    await this.supabaseService
+      .updateCategoryBudget(
+        this.selectedBudgetCategory.id,
+        this.budgetAmount,
+        this.budgetThreshold
+      );
+
+    this.categories =
+      await this.supabaseService
+        .getCategories();
+
+    this.activeForm = 'menu';
+
+    await this.loadDashboard();
+
+    this.uiService.showToast(
+      'Budget updated successfully',
+      'success'
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Failed to update budget',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
 
 }
 async loadDashboard() {
 
-  this.categories =
-    await this.supabaseService
-      .getCategories();
+  this.uiService.showLoader();
 
-  this.expenses =
-    await this.supabaseService
-      .getExpenses();
+  try {
 
-  this.calculateDashboard();
+    this.categories =
+      await this.supabaseService
+        .getCategories();
+
+    const expenses =
+      await this.supabaseService
+        .getExpenses();
+
+    this.expenses =
+      expenses.sort(
+        (a: any, b: any) =>
+          new Date(
+            b.expense_date
+          ).getTime() -
+          new Date(
+            a.expense_date
+          ).getTime()
+      );
+
+    this.calculateDashboard();
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Failed to load dashboard',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
 
 }
 calculateDashboard() {
@@ -339,82 +595,21 @@ openDeleteDialog(
   this.activeForm = 'delete';
 
 }
-async confirmDelete() {
-  if (
-    this.deleteType === 'category' &&
-    this.selectedCategory === this.selectedDeleteItem.id
-  ) {
+deleteExpenseItem(
+  expense: any
+) {
 
-    this.selectedCategory = null;
-    this.subcategories = [];
+  this.deleteType =
+    'expense';
 
-  }
+  this.deleteId =
+    expense.id;
 
+  this.activeForm =
+    'delete';
 
-  if (!this.selectedDeleteItem) {
-    return;
-  }
-
-  switch (this.deleteType) {
-
-    case 'category':
-
-      await this.supabaseService
-        .deleteCategory(
-          this.selectedDeleteItem.id
-        );
-        if (
-    this.selectedCategory ===
-    this.selectedDeleteItem.id
-  ) {
-
-    this.selectedCategory = null;
-    this.selectedSubcategory = null;
-    this.subcategories = [];
-
-  }
-
-      break;
-
-    case 'subcategory':
-
-      await this.supabaseService
-        .deleteSubcategory(
-          this.selectedDeleteItem.id
-        );
-        if (
-    this.selectedCategory ===
-    this.selectedDeleteItem.id
-  ) {
-
-    this.selectedCategory = null;
-    this.selectedSubcategory = null;
-    this.subcategories = [];
-
-  }
-
-      break;
-
-    case 'expense':
-
-      await this.supabaseService
-        .deleteExpense(
-          this.selectedDeleteItem.id
-        );
-
-      break;
-
-  }
-
-  this.selectedDeleteItem = null;
-
-  this.deleteType = null;
-
-  this.activeForm = 'menu';
-
-  await this.loadDashboard();
-  
-
+  this.showSheet =
+    true;
 
 }
 cancelDelete() {
@@ -438,4 +633,171 @@ async logout() {
   await this.router.navigate(['/']);
 
 }
+get visibleExpenseList() {
+
+  return this.expenses
+    .slice(0, this.visibleExpenses);
+
+}
+loadMoreExpenses() {
+
+  this.visibleExpenses += 5;
+  
+
+}
+async editExpense(
+  expense: any
+) {
+
+  this.editingExpense =
+    expense;
+
+  this.selectedCategory =
+    expense.category_id;
+
+  await this.selectCategory(
+    expense.category_id
+  );
+
+  this.selectedSubcategory =
+    expense.subcategory_id;
+
+  this.expenseAmount =
+    expense.amount;
+
+  this.expenseDescription =
+    expense.description;
+
+  this.expenseDate =
+    expense.expense_date;
+
+  this.activeForm =
+    'expense';
+
+  this.showSheet =
+    true;
+
+}
+async confirmDelete() {
+
+  if (!this.deleteId) {
+
+    return;
+
+  }
+
+  this.uiService.showLoader();
+
+  try {
+
+    switch (this.deleteType) {
+
+      case 'category':
+
+        await this.supabaseService
+          .deleteCategory(
+            this.deleteId
+          );
+
+        break;
+
+      case 'subcategory':
+
+        await this.supabaseService
+          .deleteSubcategory(
+            this.deleteId
+          );
+
+        break;
+
+      case 'expense':
+
+        await this.supabaseService
+          .deleteExpense(
+            this.deleteId
+          );
+
+        break;
+
+    }
+
+    this.uiService.showToast(
+      `${this.deleteType} deleted successfully`,
+      'success'
+    );
+
+    this.showSheet = false;
+
+    this.activeForm = 'menu';
+
+    this.deleteId = null;
+
+    this.deleteType = null;
+
+    await this.loadDashboard();
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Delete failed',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
+
+}
+async checkOnboarding() {
+
+  let profile =
+    await this.supabaseService
+      .getProfile();
+
+  console.log(
+    'PROFILE:',
+    profile
+  );
+
+  if (!profile) {
+
+    profile =
+      await this.supabaseService
+        .createProfile();
+
+    console.log(
+      'CREATED PROFILE:',
+      profile
+    );
+
+  }
+
+  if (
+    !profile?.onboarding_completed
+  ) {
+
+    await this.router.navigate([
+      '/onboarding'
+    ]);
+
+    return;
+
+  }
+
+  this.user =
+    await this.authService
+      .getUserProfile();
+
+  await this.loadDashboard();
+
+}
+
 }

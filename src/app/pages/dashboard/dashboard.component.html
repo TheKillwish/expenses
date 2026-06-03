@@ -1,5 +1,13 @@
 <div class="dashboard">
 
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+
+
+<div class="dashboard">
+
   <header class="header">
     <div>
     <p class="month">{{ currentMonth }}</p>
@@ -9,10 +17,37 @@
   class="user-profile"
   (click)="showUserMenu = !showUserMenu">
 
+  <div class="profile-avatar">
+
   <img
-    *ngIf="user?.user_metadata?.avatar_url"
+    *ngIf="
+      user?.user_metadata?.avatar_url &&
+      !avatarError
+    "
     [src]="user.user_metadata.avatar_url"
-    alt="Profile">
+    alt="Profile"
+    (error)="avatarError = true">
+
+  <div
+    *ngIf="
+      !user?.user_metadata?.avatar_url ||
+      avatarError
+    "
+    class="avatar-fallback">
+
+    {{
+      (
+        user?.user_metadata?.full_name ||
+        user?.email ||
+        'U'
+      )
+      .charAt(0)
+      .toUpperCase()
+    }}
+
+  </div>
+
+</div>
 
   <div
     *ngIf="!user?.user_metadata?.avatar_url"
@@ -62,6 +97,7 @@
   </header>
 
   <!-- Monthly Budget -->
+   <div class="top-grid">
 
   <section class="budget-card">
 
@@ -131,8 +167,9 @@
     </h2>
 
   </section>
-
+</div>
   <!-- Categories -->
+   <div class="content-grid">
 
   <section class="section">
 
@@ -183,47 +220,120 @@
 
   <section class="section">
 
-    <div class="section-header">
-      <h3>Recent Expenses</h3>
-    </div>
+  <div class="section-header">
 
-    <div
-      class="expense-item"
-      *ngFor="let expense of expenses | slice:0:10">
+    <h3>
+      Recent Expenses
+    </h3>
 
-      <div>
+  </div>
+
+  <div
+    class="expense-item"
+    *ngFor="
+      let expense
+      of visibleExpenseList
+    ">
+
+    <div class="expense-info">
+
+      <div class="expense-title">
+
+        <span class="emoji">
+
+          {{
+            expense.categories?.icon ||
+            '💸'
+          }}
+
+        </span>
 
         <div>
 
-          {{
-            expense.categories?.icon || '💸'
-          }}
+          <div>
 
-          {{
-            expense.description || 'Expense'
-          }}
+            {{
+              expense.description ||
+              'Expense'
+            }}
+
+          </div>
+
+          <small>
+
+            {{
+              expense.categories?.name
+            }}
+
+            •
+
+            {{
+              expense.expense_date
+              | date:'dd MMM'
+            }}
+
+          </small>
 
         </div>
 
-        <small>
-
-          {{
-            expense.categories?.name
-          }}
-
-        </small>
-
       </div>
-
-      <strong>
-
-        ₹{{ expense.amount }}
-
-      </strong>
 
     </div>
 
-  </section>
+    <div class="expense-actions">
+
+  <strong>
+    ₹{{ expense.amount }}
+  </strong>
+
+  <div class="action-buttons">
+
+    <button
+      class="action-btn edit-btn"
+      (click)="editExpense(expense)">
+
+      ✏️
+
+    </button>
+
+    <button
+      class="action-btn delete-btn"
+      (click)="deleteExpenseItem(expense)">
+
+      🗑️
+
+    </button>
+
+  </div>
+
+</div>
+
+  </div>
+
+  <div class="load-more-wrapper">
+
+  <button
+    *ngIf="
+      visibleExpenses <
+      expenses.length
+    "
+    class="load-more-btn"
+    (click)="loadMoreExpenses()">
+
+    <span>
+      View More Expenses
+    </span>
+
+    <span class="arrow">
+      ↓
+    </span>
+
+  </button>
+
+</div>
+
+</section>
+</div>
 
   <button
     class="add-expense-btn"
@@ -291,7 +401,15 @@
     ← Back
   </button>
 
-  <h2>Add Expense</h2>
+  <h2>
+
+  {{
+    editingExpense
+      ? 'Update Expense'
+      : 'Add Expense'
+  }}
+
+</h2>
 
   <div class="form-group">
 
@@ -390,7 +508,8 @@
   <label>Date</label>
 
   <input
-    type="date">
+  type="date"
+  [(ngModel)]="expenseDate">
 
 </div>
 
@@ -398,7 +517,11 @@
   class="save-btn"
   (click)="saveExpense()">
 
-  Save Expense
+  {{
+  editingExpense
+    ? 'Update Expense'
+    : 'Save Expense'
+}}
 
 </button>
 
@@ -630,5 +753,5 @@
 </div>
 
 </app-bottom-sheet>
-
+</div>
 

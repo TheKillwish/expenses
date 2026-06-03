@@ -252,5 +252,161 @@ async getCurrentUserId() {
   return user?.id;
 
 }
+async updateExpense(
+  expense: any
+) {
+
+  const userId =
+    await this.getCurrentUserId();
+
+  const { data, error } =
+    await this.supabase
+      .from('expenses')
+      .update({
+
+        category_id:
+          expense.category_id,
+
+        subcategory_id:
+          expense.subcategory_id,
+
+        amount:
+          expense.amount,
+
+        description:
+          expense.description,
+
+        expense_date:
+          expense.expense_date
+
+      })
+      .eq(
+        'id',
+        expense.id
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .select();
+
+  if (error) {
+
+    console.error(error);
+
+    return null;
+
+  }
+
+  return data;
+
+}
+async getProfile() {
+
+  const {
+    data: { user }
+  } =
+    await this.supabase.auth.getUser();
+
+  if (!user) {
+
+    return null;
+
+  }
+
+  const { data, error } =
+  await this.supabase
+    .from('user_profiles')
+    .select('*')
+    .eq(
+      'user_id',
+      user.id
+    )
+    .maybeSingle();
+
+  if (error) {
+
+    console.error(error);
+
+    return null;
+
+  }
+
+  return data;
+
+}
+async createProfile() {
+
+  const {
+    data: { user }
+  } =
+    await this.supabase.auth.getUser();
+
+  console.log(
+    'CREATE PROFILE USER:',
+    user
+  );
+
+  const { data, error } =
+    await this.supabase
+      .from('user_profiles')
+      .insert([
+        {
+          user_id: user?.id,
+          onboarding_completed: false
+        }
+      ])
+      .select()
+      .single();
+
+  console.log(
+    'CREATE PROFILE DATA:',
+    data
+  );
+
+  console.log(
+    'CREATE PROFILE ERROR:',
+    error
+  );
+
+  return data;
+
+}
+
+async updateProfile(
+  data: any
+): Promise<boolean> {
+
+  const {
+    data: { user }
+  } =
+    await this.supabase.auth.getUser();
+
+  if (!user) {
+
+    return false;
+
+  }
+
+  const { error } =
+    await this.supabase
+      .from('user_profiles')
+      .update(data)
+      .eq(
+        'user_id',
+        user.id
+      );
+
+  if (error) {
+
+    console.error(error);
+
+    return false;
+
+  }
+
+  return true;
+
+}
 
 }

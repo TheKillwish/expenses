@@ -72,4 +72,53 @@ async getUserProfile() {
   return user;
 
 }
+async signUp(
+  email: string,
+  password: string
+) {
+
+  return await this.supabaseService
+    .supabase
+    .auth
+    .signUp({
+      email,
+      password
+    });
+
+}
+async signIn(
+  email: string,
+  password: string
+) {
+
+  return await this.supabaseService
+    .supabase
+    .auth
+    .signInWithPassword({
+      email,
+      password
+    });
+
+}async sendMagicLink(
+  email: string
+) {
+
+  return await this.supabaseService
+    .supabase
+    .auth
+    .signInWithOtp({
+
+      email,
+
+      options: {
+
+        emailRedirectTo:
+          window.location.origin +
+          '/dashboard'
+
+      }
+
+    });
+
+}
 }

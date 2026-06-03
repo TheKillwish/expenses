@@ -1,0 +1,364 @@
+<div class="onboarding-container">
+
+  <!-- Progress -->
+
+  <div class="progress-section">
+
+    <div class="step-text">
+
+      Step {{ step }} of 5
+
+    </div>
+
+    <div class="progress-wrapper">
+
+      <div
+        class="progress-fill"
+        [style.width.%]="step * 20">
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- STEP 1 -->
+
+  <div *ngIf="step === 1">
+
+    <div class="hero">
+
+      <h1>
+
+        ✨ Let's Build Your Budget
+
+      </h1>
+
+      <p>
+
+        Select the categories where you spend money.
+
+      </p>
+
+    </div>
+
+    <div class="chip-container">
+
+      <div
+        *ngFor="let category of categories"
+        class="chip"
+        [class.selected]="
+          isSelected(category)
+        "
+        (click)="
+          toggleCategory(category)
+        ">
+
+        <span class="chip-icon">
+
+          {{ category.icon }}
+
+        </span>
+
+        <span>
+
+          {{ category.name }}
+
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- STEP 2 -->
+
+  <div *ngIf="step === 2">
+
+    <div class="hero">
+
+      <h1>
+
+        📂 Select Subcategories
+
+      </h1>
+
+      <p>
+
+        Tell us where your money goes.
+
+      </p>
+
+    </div>
+
+    <div
+      *ngFor="
+        let category
+        of selectedCategories
+      "
+      class="subcategory-group">
+
+      <h3>
+
+        {{ category.icon }}
+
+        {{ category.name }}
+
+      </h3>
+
+      <div class="chip-container">
+
+        <div
+          *ngFor="
+            let sub
+            of category.subcategories
+          "
+          class="chip"
+          [class.selected]="
+            isSubcategorySelected(
+              category.name,
+              sub
+            )
+          "
+          (click)="
+            toggleSubcategory(
+              category.name,
+              sub
+            )
+          ">
+
+          {{ sub }}
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- STEP 3 -->
+
+  <div *ngIf="step === 3">
+
+    <div class="hero">
+
+      <h1>
+
+        💰 Monthly Income
+
+      </h1>
+
+      <p>
+
+        What is your monthly take-home income?
+
+      </p>
+
+    </div>
+
+    <div class="form-card">
+
+      <label>
+
+        Monthly Income
+
+      </label>
+
+      <input
+        type="number"
+        [(ngModel)]="monthlyIncome"
+        placeholder="75000">
+
+    </div>
+
+  </div>
+
+  <!-- STEP 4 -->
+
+  <div *ngIf="step === 4">
+
+    <div class="hero">
+
+      <h1>
+
+        📊 Budget Allocation
+
+      </h1>
+
+      <p>
+
+        Allocate your income.
+
+      </p>
+
+    </div>
+
+    <div
+  *ngFor="
+    let category
+    of selectedCategories
+  "
+  class="allocation-card">
+
+  <div class="allocation-header">
+
+    <span>
+
+      {{ category.icon }}
+      {{ category.name }}
+
+    </span>
+
+    <strong>
+
+      {{ category.percentage || 0 }}%
+
+    </strong>
+
+  </div>
+
+  <input
+    type="range"
+    min="0"
+    max="100"
+    [(ngModel)]="
+      category.percentage
+    "
+    (input)="
+      validateAllocation()
+    ">
+
+</div>
+
+<div class="allocation-summary">
+
+  <div>
+
+    Allocated
+
+    <strong>
+
+      {{ allocationTotal }}%
+
+    </strong>
+
+  </div>
+
+  <div>
+
+    Remaining
+
+    <strong>
+
+      {{ remainingAllocation }}%
+
+    </strong>
+
+  </div>
+
+</div>
+
+<div
+  *ngIf="
+    allocationError && allocationTotal>100
+  "
+  class="allocation-error">
+
+  Allocation exceeds 100%.
+  Reduce some categories before continuing.
+
+</div>
+
+  </div>
+
+  <!-- STEP 5 -->
+
+  <div *ngIf="step === 5">
+
+    <div class="hero">
+
+      <h1>
+
+        🚀 Ready To Go
+
+      </h1>
+
+      <p>
+
+        Review your setup.
+
+      </p>
+
+    </div>
+
+    <div class="review-card">
+
+      <div>
+
+        Monthly Income
+
+      </div>
+
+      <strong>
+
+        ₹{{ monthlyIncome }}
+
+      </strong>
+
+    </div>
+
+    <div
+      *ngFor="
+        let category
+        of selectedCategories
+      "
+      class="review-card">
+
+      <div>
+
+        {{ category.icon }}
+
+        {{ category.name }}
+
+      </div>
+
+      <strong>
+
+        {{ category.percentage || 0 }}%
+
+      </strong>
+
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+
+  <div class="bottom-actions">
+
+    <button
+      *ngIf="step > 1"
+      class="secondary-btn"
+      (click)="step = step - 1">
+
+      Back
+
+    </button>
+
+    <button
+      class="continue-btn"
+      (click)="nextStep()">
+
+      {{
+        step === 5
+          ? 'Create Budget'
+          : 'Continue'
+      }}
+
+    </button>
+
+  </div>
+
+</div>
