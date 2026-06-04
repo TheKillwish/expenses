@@ -99,26 +99,35 @@ async signIn(
       password
     });
 
-}async sendMagicLink(
+}
+async sendMagicLink(
   email: string
 ) {
 
-  return await this.supabaseService
-    .supabase
-    .auth
-    .signInWithOtp({
+  const response =
+    await this.supabaseService
+      .supabase
+      .auth
+      .signInWithOtp({
 
-      email,
+        email,
 
-      options: {
+        options: {
 
-        emailRedirectTo:
-          window.location.origin +
-          '/dashboard'
+          emailRedirectTo:
+            window.location.origin +
+            '/dashboard'
 
-      }
+        }
 
-    });
+      });
+
+  console.log(
+    'MAGIC LINK RESPONSE:',
+    response
+  );
+
+  return response;
 
 }
 }

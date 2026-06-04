@@ -12,6 +12,11 @@
 
 .sheet {
   width: 100%;
+  display: flex;
+
+  flex-direction: column;
+
+  max-height: 90vh;
 
   background: #171a21;
 

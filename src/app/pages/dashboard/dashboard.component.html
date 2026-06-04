@@ -1,4 +1,14 @@
-<div class="dashboard">
+<div
+  *ngIf="loading"
+  class="page-loader">
+
+  <div class="spinner"></div>
+
+</div>
+
+<div *ngIf="!loading">
+
+ <div class="dashboard">
 
   <div class="blob blob-1"></div>
   <div class="blob blob-2"></div>
@@ -347,9 +357,10 @@
 <app-bottom-sheet
   [visible]="showSheet"
   (closed)="showSheet = false">
+<div class="sheet-body">
   <!-- MENU -->
 
-<div *ngIf="activeForm === 'menu'">
+<div *ngIf="activeForm === 'menu'" > 
 
   <h2 class="sheet-title">
     What would you like to add?
@@ -751,7 +762,13 @@
   </div>
 
 </div>
+</div>
 
 </app-bottom-sheet>
 </div>
+
+</div>
+
+
+
 

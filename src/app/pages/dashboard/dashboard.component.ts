@@ -22,6 +22,7 @@ export class DashboardComponent implements OnInit{
    private router: Router,
    private uiService: UiService
 ) {}
+loading = true;
 avatarError = false;
 visibleExpenses = 5;
   showSheet = false;
@@ -101,12 +102,10 @@ currentMonth =
 
 async ngOnInit() {
 
-  console.log('DASHBOARD INIT');
+  this.loading = true;
 
   const user =
     await this.authService.getUser();
-
-  console.log('USER:', user);
 
   if (!user) {
 
@@ -120,35 +119,17 @@ async ngOnInit() {
     await this.supabaseService
       .getProfile();
 
-  console.log(
-    'PROFILE FOUND:',
-    profile
-  );
-
   if (!profile) {
-
-    console.log(
-      'CREATING PROFILE'
-    );
 
     profile =
       await this.supabaseService
         .createProfile();
-
-    console.log(
-      'PROFILE CREATED:',
-      profile
-    );
 
   }
 
   if (
     !profile?.onboarding_completed
   ) {
-
-    console.log(
-      'GO TO ONBOARDING'
-    );
 
     await this.router.navigate([
       '/onboarding'
@@ -158,15 +139,13 @@ async ngOnInit() {
 
   }
 
-  console.log(
-    'LOAD DASHBOARD'
-  );
-
   this.user =
     await this.authService
       .getUserProfile();
 
   await this.loadDashboard();
+
+  this.loading = false;
 
 }
 async saveCategory() {
@@ -368,11 +347,11 @@ async saveExpense() {
       );
 
     }
-
+    this.resetExpenseForm();
     this.editingExpense = null;
 
     this.showSheet = false;
-
+    
     await this.loadDashboard();
 
   }
@@ -797,6 +776,22 @@ async checkOnboarding() {
       .getUserProfile();
 
   await this.loadDashboard();
+
+}
+resetExpenseForm() {
+
+  this.selectedCategory = null;
+
+  this.selectedSubcategory = null;
+
+  this.expenseAmount = 0;
+
+  this.expenseDescription = '';
+
+  this.expenseDate =
+    new Date()
+      .toISOString()
+      .split('T')[0];
 
 }
 
