@@ -408,5 +408,42 @@ async updateProfile(
   return true;
 
 }
+async hasGeneratedToday():
+
+Promise<boolean> {
+
+  const today =
+
+    new Date()
+      .toISOString()
+      .split('T')[0];
+
+  const {
+    data,
+    error
+  } =
+
+    await this.supabase
+
+      .from(
+        'ai_insights'
+      )
+
+      .select(
+        'id'
+      )
+
+      .gte(
+        'created_at',
+        `${today}T00:00:00`
+      )
+
+      .limit(1)
+
+      .maybeSingle();
+
+  return !!data;
+
+}
 
 }

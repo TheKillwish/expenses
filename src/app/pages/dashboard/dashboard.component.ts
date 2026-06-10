@@ -6,6 +6,16 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
 import { UiService } from '../../services/ui.service';
+import {
+  AiService
+}
+from '../../services/ai.service';
+import {
+  NgZone
+} from '@angular/core';
+declare var webkitSpeechRecognition: any;
+
+declare var SpeechRecognition: any;
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -20,8 +30,18 @@ export class DashboardComponent implements OnInit{
   private supabaseService: SupabaseService,
   private authService: AuthService,
    private router: Router,
-   private uiService: UiService
+   private uiService: UiService,
+   private aiService: AiService,
+   private ngZone: NgZone
 ) {}
+isListening = false;
+
+isProcessingVoice = false;
+private recognition: any;
+restartVoice = false;
+voiceTranscript = '';
+
+transcript = '';
 loading = true;
 avatarError = false;
 visibleExpenses = 5;
@@ -77,7 +97,22 @@ showDeleteDialog = false;
 user: any = null;
 
 showUserMenu = false;
+latestInsight: any = null;
+hasGeneratedToday =
+  false;
 
+isGeneratingInsight =
+  false;
+
+aiEligibility = {
+
+  expenseCount: 0,
+
+  accountAgeDays: 0,
+
+  eligible: false
+
+};
 deleteType:
   'category'
   | 'subcategory'
@@ -144,6 +179,17 @@ async ngOnInit() {
       .getUserProfile();
 
   await this.loadDashboard();
+  this.hasGeneratedToday =
+  await this.supabaseService
+    .hasGeneratedToday();
+
+if (
+  this.hasGeneratedToday
+) {
+
+  await this.loadLatestInsight();
+
+}
 
   this.loading = false;
 
@@ -182,6 +228,7 @@ async saveCategory() {
     this.activeForm = 'menu';
 
     await this.loadDashboard();
+    
 
     this.uiService.showToast(
       'Category created successfully',
@@ -792,6 +839,819 @@ resetExpenseForm() {
     new Date()
       .toISOString()
       .split('T')[0];
+
+}
+async testAI() {
+
+  try {
+
+    this.uiService
+      .showLoader();
+
+    const result =
+
+      await this
+        .aiService
+        .parseExpense(
+
+          'Paid 250 for lunch'
+
+        );
+
+    console.log(
+      result
+    );
+
+    this.uiService
+      .showToast(
+
+        'AI Parsed Successfully',
+
+        'success'
+
+      );
+
+  }
+
+  catch (error: any) {
+
+  console.error(
+    'FULL ERROR:',
+    error
+  );
+
+  if (
+    error?.context
+  ) {
+
+    const responseText =
+      await error.context.text();
+
+    console.log(
+      'EDGE FUNCTION RESPONSE:',
+      responseText
+    );
+
+  }
+
+    this.uiService
+      .showToast(
+
+        'AI Failed',
+
+        'error'
+
+      );
+
+  }
+
+  finally {
+
+    this.uiService
+      .hideLoader();
+
+  }
+
+}
+async startVoiceExpense() {
+
+  if (
+    this.isListening
+  ) {
+
+    return;
+
+  }
+
+  const SpeechRecognitionApi =
+
+    (window as any)
+      .SpeechRecognition ||
+
+    (window as any)
+      .webkitSpeechRecognition;
+
+  if (
+    !SpeechRecognitionApi
+  ) {
+
+    this.uiService.showToast(
+
+      'Voice recognition is not supported on this browser',
+
+      'error'
+
+    );
+
+    return;
+
+  }
+
+  this.voiceTranscript = '';
+
+  this.isListening = true;
+
+  this.recognition =
+    new SpeechRecognitionApi();
+
+  this.recognition.lang =
+    'en-IN';
+
+  this.recognition.interimResults =
+    true;
+
+  this.recognition.continuous =
+    true;
+
+  this.recognition.maxAlternatives =
+    1;
+
+  this.recognition.onresult =
+    (event: any) => {
+
+      let transcript = '';
+
+      for (
+
+        let i = 0;
+
+        i < event.results.length;
+
+        i++
+
+      ) {
+
+        transcript +=
+          event.results[i][0]
+            .transcript + ' ';
+
+      }
+
+      this.ngZone.run(() => {
+
+        this.voiceTranscript =
+          transcript.trim();
+
+      });
+
+    };
+
+  this.recognition.onerror =
+    (event: any) => {
+
+      console.error(
+        'Speech Recognition Error:',
+        event
+      );
+
+      this.ngZone.run(() => {
+
+        this.isListening =
+          false;
+
+        this.restartVoice =
+          false;
+
+        switch (
+          event.error
+        ) {
+
+          case 'not-allowed':
+
+            this.uiService.showToast(
+
+              'Microphone permission denied',
+
+              'error'
+
+            );
+
+            break;
+
+          case 'network':
+
+            this.uiService.showToast(
+
+              'Network error during voice recognition',
+
+              'error'
+
+            );
+
+            break;
+
+          case 'no-speech':
+
+            this.uiService.showToast(
+
+              'No speech detected',
+
+              'error'
+
+            );
+
+            break;
+
+          default:
+
+            this.uiService.showToast(
+
+              'Voice recognition failed',
+
+              'error'
+
+            );
+
+        }
+
+      });
+
+    };
+
+  this.recognition.onend =
+    async () => {
+
+      /*
+       * User clicked Speak Again
+       */
+
+      if (
+        this.restartVoice
+      ) {
+
+        this.restartVoice =
+          false;
+
+        setTimeout(() => {
+
+          this.startVoiceExpense();
+
+        }, 300);
+
+        return;
+
+      }
+
+      /*
+       * User manually stopped
+       */
+
+      if (
+        !this.isListening
+      ) {
+
+        return;
+
+      }
+
+      await this.stopListening();
+
+    };
+
+  try {
+
+    console.log(
+      'STARTING RECOGNITION'
+    );
+
+    this.recognition.start();
+
+  }
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+    this.isListening =
+      false;
+
+    this.restartVoice =
+      false;
+
+    this.uiService.showToast(
+
+      'Unable to start voice recognition',
+
+      'error'
+
+    );
+
+  }
+
+}
+async parseVoiceExpense(
+  text: string
+) {
+
+  try {
+
+    this.uiService.showLoader();
+
+    const result =
+
+      await this.aiService
+        .parseExpense(
+          text
+        );
+
+    console.log(
+      result
+    );
+
+    if (
+      !result.success
+    ) {
+
+      this.uiService.showToast(
+
+        'Unable to understand expense',
+
+        'error'
+
+      );
+
+      return;
+
+    }
+
+    this.populateExpenseForm(
+      result
+    );
+
+  }
+
+  catch (
+    error
+  ) {
+
+    console.error(
+      error
+    );
+
+    this.uiService.showToast(
+
+      'AI parsing failed',
+
+      'error'
+
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+  }
+
+}
+async populateExpenseForm(
+  result: any
+) {
+
+  const category =
+
+    this.categories.find(
+
+      (x: any) =>
+
+        x.name
+          ?.toLowerCase()
+          .trim() ===
+
+        result.category
+          ?.toLowerCase()
+          .trim()
+
+    );
+
+  if (
+    category
+  ) {
+
+    await this.selectCategory(
+      category.id
+    );
+
+  }
+
+  const subcategory =
+
+    this.subcategories.find(
+
+      (x: any) =>
+
+        x.name
+          ?.toLowerCase()
+          .trim() ===
+
+        result.subcategory
+          ?.toLowerCase()
+          .trim()
+
+    );
+
+  if (
+    subcategory
+  ) {
+
+    this.selectedSubcategory =
+      subcategory.id;
+
+  }
+
+  this.expenseAmount =
+    Number(
+      result.amount
+    ) || 0;
+
+  this.expenseDescription =
+    result.description ?? '';
+
+  this.expenseDate =
+  result.date ||
+  new Date()
+    .toISOString()
+    .split('T')[0];
+
+  this.editingExpense =
+    null;
+
+  this.showSheet =
+    true;
+
+}
+async stopListening() {
+
+  try {
+
+    this.recognition?.stop();
+
+  }
+
+  catch (error) {
+
+    console.error(
+      'Failed to stop recognition',
+      error
+    );
+
+  }
+
+  this.isListening = false;
+
+  const transcript =
+
+    this.voiceTranscript
+      ?.trim();
+
+  /*
+   * User closed immediately
+   */
+
+  if (
+    !transcript
+  ) {
+
+    this.voiceTranscript = '';
+
+    this.uiService.showToast(
+
+      'No speech detected',
+
+      'error'
+
+    );
+
+    return;
+
+  }
+
+  /*
+   * Extremely short speech
+   */
+
+  if (
+    transcript.length < 3
+  ) {
+
+    this.voiceTranscript = '';
+
+    this.uiService.showToast(
+
+      'Please speak a little more clearly',
+
+      'error'
+
+    );
+
+    return;
+
+  }
+
+  this.isProcessingVoice = true;
+
+  this.uiService.showLoader();
+
+  try {
+
+    const result =
+
+      await this.aiService
+        .parseExpense(
+          transcript
+        );
+
+    console.log(
+      'AI RESULT:',
+      result
+    );
+
+    /*
+     * AI returned error
+     */
+
+    if (
+      !result ||
+      !result.success
+    ) {
+
+      this.uiService.showToast(
+
+        'Unable to understand expense',
+
+        'error'
+
+      );
+
+      return;
+
+    }
+
+    /*
+     * Missing amount
+     */
+
+    if (
+      !result.amount
+    ) {
+
+      this.uiService.showToast(
+
+        'Could not detect amount',
+
+        'error'
+
+      );
+
+      return;
+
+    }
+
+    await this.populateExpenseForm(
+      result
+    );
+
+    this.uiService.showToast(
+
+      'Expense detected successfully',
+
+      'success'
+
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      'VOICE PARSE ERROR:',
+      error
+    );
+
+    this.uiService.showToast(
+
+      'Failed to process expense',
+
+      'error'
+
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+    this.isProcessingVoice = false;
+
+    this.voiceTranscript = '';
+
+  }
+
+}
+speakAgain() {
+
+  this.voiceTranscript = '';
+
+  this.restartVoice = true;
+
+  this.isListening = false;
+
+  try {
+
+    this.recognition?.stop();
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.restartVoice = false;
+
+    this.startVoiceExpense();
+
+  }
+
+}
+async testInsights() {
+
+  const result =
+
+    await this.supabaseService
+      .supabase
+      .functions
+      .invoke(
+        'generate-insights'
+      );
+
+  console.log(
+    result
+  );
+await this.loadLatestInsight();
+}
+
+async loadLatestInsight() {
+
+  const { data, error } =
+
+    await this.supabaseService
+      .supabase
+      .from(
+        'ai_insights'
+      )
+      .select('*')
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      )
+      .limit(1)
+      .single();
+
+  if (
+    !error &&
+    data
+  ) {
+
+    this.latestInsight =
+      data;
+
+  }
+
+}
+async checkTodaysInsight() {
+
+  const today =
+
+    new Date()
+      .toISOString()
+      .split('T')[0];
+
+  const {
+
+    data
+
+  } =
+
+    await this.supabaseService
+      .supabase
+      .from(
+        'ai_insights'
+      )
+      .select(`
+        id,
+        title,
+        summary,
+        action,
+        severity,
+        metrics,
+        created_at
+      `)
+      .gte(
+        'created_at',
+        `${today}T00:00:00`
+      )
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      )
+      .maybeSingle();
+
+  if (
+    data
+  ) {
+
+    this.hasGeneratedToday =
+      true;
+
+    this.latestInsight =
+      data;
+
+  }
+
+}
+
+async generateTodaysInsight() {
+
+  if (
+    this.isGeneratingInsight
+  ) {
+
+    return;
+
+  }
+
+  this.isGeneratingInsight =
+    true;
+
+  this.uiService.showLoader();
+
+  try {
+
+    const result =
+
+      await this.supabaseService
+        .supabase
+        .functions
+        .invoke(
+          'generate-insights'
+        );
+
+    if (
+      result.data?.success
+    ) {
+
+      this.latestInsight = {
+
+        ...result.data.insight,
+
+        metrics:
+          result.data.metrics
+
+      };
+
+      this.hasGeneratedToday =
+        true;
+
+      this.uiService.showToast(
+
+        'AI insight generated',
+
+        'success'
+
+      );
+
+    }
+
+  }
+
+  catch {
+
+    this.uiService.showToast(
+
+      'Failed to generate insight',
+
+      'error'
+
+    );
+
+  }
+
+  finally {
+
+    this.uiService.hideLoader();
+
+    this.isGeneratingInsight =
+      false;
+
+  }
 
 }
 

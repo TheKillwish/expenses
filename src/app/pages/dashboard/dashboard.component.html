@@ -101,6 +101,13 @@
     Logout
 
   </button>
+  <button
+  class="logout-btn"
+  (click)="testInsights()">
+
+  Test Insights
+
+</button>
 
 </div>
 
@@ -163,6 +170,135 @@
       of budget used
 
     </div>
+    <div
+  *ngIf="latestInsight"
+  class="ai-insight-card">
+
+  <div class="ai-header">
+
+    <div class="ai-badge">
+      ✨
+    </div>
+
+    <div>
+
+      <div class="ai-label">
+        Rezu AI Insight
+      </div>
+
+      <div class="ai-title">
+        {{ latestInsight.title }}
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="ai-summary">
+    {{ latestInsight.summary }}
+  </div>
+
+  <div class="ai-action">
+
+    <span>
+      💡 Suggested Action
+    </span>
+
+    <p>
+      {{ latestInsight.action }}
+    </p>
+
+  </div>
+
+  <div
+    class="ai-metric"
+    *ngIf="latestInsight.metrics">
+
+    <span>
+      Ahead of Plan
+    </span>
+
+    <strong>
+
+      ₹{{
+        latestInsight.metrics.savings_difference
+        | number:'1.0-0'
+      }}
+
+    </strong>
+
+  </div>
+
+</div>
+
+<div
+  *ngIf="!latestInsight"
+  class="ai-placeholder">
+
+  <div class="ai-placeholder-icon">
+    ✨
+  </div>
+
+  <h3>
+    Rezu AI Coach
+  </h3>
+
+  <p>
+    Your personalized financial insights are being prepared.
+  </p>
+
+  <div class="ai-requirements">
+
+    <div>
+
+      Expenses
+
+      {{ aiEligibility.expenseCount }}/10
+
+    </div>
+
+    <div>
+
+      Days
+
+      {{ aiEligibility.accountAgeDays }}/7
+
+    </div>
+
+  </div>
+
+</div>
+<div class="ai-footer">
+
+  <button
+    *ngIf="!hasGeneratedToday"
+    class="generate-ai-btn"
+    [disabled]="isGeneratingInsight"
+    (click)="generateTodaysInsight()">
+
+    <span *ngIf="!isGeneratingInsight">
+
+      ✨ Generate Today's Insight
+
+    </span>
+
+    <span *ngIf="isGeneratingInsight">
+
+      Generating Insight...
+
+    </span>
+
+  </button>
+
+  <div
+    *ngIf="hasGeneratedToday"
+    class="ai-generated-badge">
+
+    ✓ Today's Insight Generated
+
+  </div>
+
+</div>
 
   </section>
 
@@ -405,12 +541,14 @@
 </div>
 <div *ngIf="activeForm === 'expense'">
 
+
   <button
     class="back-btn"
     (click)="activeForm='menu'">
 
     ← Back
   </button>
+
 
   <h2>
 
@@ -421,6 +559,126 @@
   }}
 
 </h2>
+<div class="ai-expense-card">
+
+  <div class="ai-header">
+
+    <div class="ai-icon">
+
+      ✨
+
+    </div>
+
+    <div>
+
+      <div class="ai-title">
+
+        AI Expense Entry
+
+      </div>
+
+      <div class="ai-subtitle">
+
+        Speak naturally and we'll fill everything for you
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <button
+    class="ai-voice-btn"
+    (click)="startVoiceExpense()"
+    [disabled]="isListening">
+
+    <span *ngIf="!isListening">
+
+      🎙️ Describe Expense
+
+    </span>
+
+    <span *ngIf="isListening">
+
+      🎤 Listening...
+
+    </span>
+
+  </button>
+  <div
+  *ngIf="isListening"
+  class="voice-live-card">
+
+  <div class="voice-status">
+
+    <span class="voice-dot"></span>
+
+    Listening...
+
+  </div>
+
+  <div class="voice-text">
+
+    {{ voiceTranscript ||
+       'Start speaking...' }}
+
+  </div>
+
+  <div class="voice-wave">
+
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+
+  </div>
+
+  <div class="voice-header">
+
+  <!-- <div class="voice-status">
+
+    <span class="voice-dot"></span>
+
+    Listening...
+
+  </div> -->
+
+  <div
+  class="voice-actions"
+  *ngIf="voiceTranscript">
+
+  <button
+    class="speak-again-btn"
+    (click)="speakAgain()">
+
+    🎙️ Speak Again
+
+  </button>
+
+  <button
+    class="use-expense-btn"
+    (click)="stopListening()">
+
+    ✨ Use This Expense
+
+  </button>
+
+</div>
+
+<button
+  *ngIf="!voiceTranscript"
+  class="stop-listening-btn"
+  (click)="stopListening()">
+
+  ⏹ Stop Listening
+
+</button>
+
+</div>
+
+</div>
+
+</div>
 
   <div class="form-group">
 
@@ -765,9 +1023,13 @@
 </div>
 
 </app-bottom-sheet>
-</div>
+
 
 </div>
+
+
+</div>
+
 
 
 
