@@ -958,43 +958,40 @@ async startVoiceExpense() {
     'en-IN';
 
   this.recognition.interimResults =
-    true;
+    false;
 
   this.recognition.continuous =
-    true;
+    false;
 
   this.recognition.maxAlternatives =
     1;
 
   this.recognition.onresult =
-    (event: any) => {
+  (event: any) => {
 
-      let transcript = '';
+    const result =
 
-      for (
+      event.results[
+        event.resultIndex
+      ];
 
-        let i = 0;
-
-        i < event.results.length;
-
-        i++
-
-      ) {
-
-        transcript +=
-          event.results[i][0]
-            .transcript + ' ';
-
-      }
+    if (
+      result.isFinal
+    ) {
 
       this.ngZone.run(() => {
 
         this.voiceTranscript =
-          transcript.trim();
+
+          result[0]
+            .transcript
+            .trim();
 
       });
 
-    };
+    }
+
+  };
 
   this.recognition.onerror =
     (event: any) => {
@@ -1042,13 +1039,20 @@ async startVoiceExpense() {
 
           case 'no-speech':
 
-            this.uiService.showToast(
+  if (
+    !this.voiceTranscript
+  ) {
 
-              'No speech detected',
+    this.uiService.showToast(
 
-              'error'
+      'No speech detected',
 
-            );
+      'error'
+
+    );
+
+  }
+
 
             break;
 

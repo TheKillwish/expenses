@@ -393,6 +393,7 @@ Rules:
       return new Response(
 
         JSON.stringify({
+          context:categoryContext,
 
           success:
             true,
