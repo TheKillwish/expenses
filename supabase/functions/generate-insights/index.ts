@@ -959,6 +959,8 @@ if (
     success: true,
 
     eligible,
+    
+    categoryTotal:categoryTotals,
 
     insight:
       aiInsight,

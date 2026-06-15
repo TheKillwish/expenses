@@ -163,7 +163,7 @@ async updateCategoryBudget(
 async getExpenses() {
 
   const userId =
-  await this.getCurrentUserId();
+    await this.getCurrentUserId();
 
   const { data, error } =
     await this.supabase
@@ -174,9 +174,16 @@ async getExpenses() {
           id,
           name,
           icon
+        ),
+        subcategories (
+          id,
+          name
         )
       `)
-      .eq('user_id', userId)
+      .eq(
+        'user_id',
+        userId
+      )
       .order(
         'created_at',
         {
@@ -185,11 +192,17 @@ async getExpenses() {
       );
 
   if (error) {
-    console.error(error);
+
+    console.error(
+      error
+    );
+
     return [];
+
   }
 
   return data;
+
 }
 async deleteCategory(id: number) {
 
@@ -444,6 +457,33 @@ Promise<boolean> {
 
   return !!data;
 
+}
+async getLatestInsight() {
+  const today =
+    new Date()
+      .toISOString()
+      .split('T')[0];
+
+  const { data, error } =
+    await this.supabase
+      .from('ai_insights')
+      .select('*')
+      .order('created_at', {
+        ascending: false
+      })
+      .limit(1)
+      .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    latestInsight: data,
+    hasTodayInsight:
+      data &&
+      data.created_at.startsWith(today)
+  };
 }
 
 }

@@ -192,6 +192,17 @@
         Allocate your income.
 
       </p>
+      <div class="allocation-actions">
+
+  <button
+    class="ai-allocation-btn"
+    (click)="autoAllocateBudget()">
+
+    ✨ Auto Allocate Budget
+
+  </button>
+
+</div>
 
     </div>
 
@@ -308,29 +319,132 @@
       </strong>
 
     </div>
+    <div class="review-card">
+
+  <div>
+
+    Monthly Spending Budget
+
+  </div>
+
+  <strong>
+
+    ₹{{
+      (
+        monthlyIncome *
+        allocationTotal
+      ) / 100
+      | number:'1.0-0'
+    }}
+
+  </strong>
+
+</div>
+
+<div class="review-card savings">
+
+  <div>
+
+    Monthly Savings Goal
+
+  </div>
+
+  <strong>
+
+    ₹{{
+      (
+        monthlyIncome *
+        (100 - allocationTotal)
+      ) / 100
+      | number:'1.0-0'
+    }}
+
+  </strong>
+
+</div>
 
     <div
-      *ngFor="
-        let category
-        of selectedCategories
-      "
-      class="review-card">
+  *ngFor="
+    let category
+    of selectedCategories
+  "
+  class="review-card">
 
-      <div>
+  <div>
 
-        {{ category.icon }}
+    {{ category.icon }}
 
-        {{ category.name }}
+    {{ category.name }}
 
-      </div>
+  </div>
 
-      <strong>
+  <div
+    class="review-budget">
 
-        {{ category.percentage || 0 }}%
+    <div>
 
-      </strong>
+      {{ category.percentage || 0 }}%
 
     </div>
+
+    <strong>
+
+      ₹{{
+        (
+          monthlyIncome *
+          (category.percentage || 0)
+        ) / 100
+        | number:'1.0-0'
+      }}
+
+    </strong>
+
+  </div>
+
+</div>
+    <div class="success-card">
+
+  <div class="success-icon">
+
+    🎉
+
+  </div>
+
+  <h3>
+
+    Woohoo!
+
+  </h3>
+
+  <p>
+
+    You're planning to save
+
+    <strong>
+
+      {{ 100 - allocationTotal }}%
+
+    </strong>
+
+    of your income every month.
+
+  </p>
+
+  <div class="saving-amount">
+
+    ₹{{
+      (
+        monthlyIncome *
+        (100 - allocationTotal)
+      ) / 100
+      | number:'1.0-0'
+    }}
+
+    / month
+
+  </div>
+
+</div>
 
   </div>
 

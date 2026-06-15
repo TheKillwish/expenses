@@ -10,8 +10,15 @@ import {
   AiService
 }
 from '../../services/ai.service';
+import {NotificationService} from "../../services/notification.service"
 import {
   NgZone
+} from '@angular/core';
+import Tesseract
+from 'tesseract.js';
+import {
+  ViewChild,
+  ElementRef
 } from '@angular/core';
 declare var webkitSpeechRecognition: any;
 
@@ -32,14 +39,31 @@ export class DashboardComponent implements OnInit{
    private router: Router,
    private uiService: UiService,
    private aiService: AiService,
-   private ngZone: NgZone
+   private ngZone: NgZone,
+   private notificationService: NotificationService
+
 ) {}
+@ViewChild('receiptInput')
+receiptInput!: ElementRef<HTMLInputElement>;
 isListening = false;
+isScanningReceipt = false;
+activeAiMode:
+  'voice' |
+  'receipt' |
+  null = null;
+expenseSearch = '';
+
+filteredExpenses: any[] = [];
 
 isProcessingVoice = false;
 private recognition: any;
 restartVoice = false;
 voiceTranscript = '';
+selectedReceiptFile: File | null = null;
+
+receiptPreview: string | null = null;
+
+isReceiptPreviewOpen = false;
 
 transcript = '';
 loading = true;
@@ -136,6 +160,12 @@ currentMonth =
   );
 
 async ngOnInit() {
+  await this.notificationService
+  .requestPermission();
+  localStorage.setItem(
+  'rezu_notifications',
+  'true'
+);
 
   this.loading = true;
 
@@ -179,9 +209,16 @@ async ngOnInit() {
       .getUserProfile();
 
   await this.loadDashboard();
-  this.hasGeneratedToday =
+  await this.calculateAiEligibility();
+  const result =
   await this.supabaseService
-    .hasGeneratedToday();
+    .getLatestInsight();
+
+this.latestInsight =
+  result.latestInsight;
+
+this.hasGeneratedToday =
+  result.hasTodayInsight;
 
 if (
   this.hasGeneratedToday
@@ -513,7 +550,9 @@ async loadDashboard() {
             a.expense_date
           ).getTime()
       );
-
+    this.filteredExpenses =
+  [...this.expenses];
+  console.log("expenses: ",this.filteredExpenses)
     this.calculateDashboard();
 
   }
@@ -914,6 +953,10 @@ async testAI() {
 
 }
 async startVoiceExpense() {
+  this.activeAiMode =
+  'voice';
+
+this.clearReceipt();
 
   if (
     this.isListening
@@ -994,123 +1037,89 @@ async startVoiceExpense() {
   };
 
   this.recognition.onerror =
-    (event: any) => {
+  (event: any) => {
 
-      console.error(
-        'Speech Recognition Error:',
-        event
-      );
-
-      this.ngZone.run(() => {
-
-        this.isListening =
-          false;
-
-        this.restartVoice =
-          false;
-
-        switch (
-          event.error
-        ) {
-
-          case 'not-allowed':
-
-            this.uiService.showToast(
-
-              'Microphone permission denied',
-
-              'error'
-
-            );
-
-            break;
-
-          case 'network':
-
-            this.uiService.showToast(
-
-              'Network error during voice recognition',
-
-              'error'
-
-            );
-
-            break;
-
-          case 'no-speech':
-
-  if (
-    !this.voiceTranscript
-  ) {
-
-    this.uiService.showToast(
-
-      'No speech detected',
-
-      'error'
-
+    console.error(
+      'Speech Recognition Error:',
+      event
     );
 
-  }
+    this.ngZone.run(() => {
 
+      switch (
+        event.error
+      ) {
 
-            break;
+        case 'not-allowed':
 
-          default:
+          this.isListening = false;
 
-            this.uiService.showToast(
+          this.uiService.showToast(
+            'Microphone permission denied',
+            'error'
+          );
 
-              'Voice recognition failed',
+          break;
 
-              'error'
+        case 'network':
 
-            );
+          this.isListening = false;
+
+          this.uiService.showToast(
+            'Network error during voice recognition',
+            'error'
+          );
+
+          break;
+
+        case 'no-speech':
+
+          // Ignore completely
+
+          break;
+
+        default:
+
+          this.isListening = false;
+
+          this.uiService.showToast(
+            'Voice recognition failed',
+            'error'
+          );
+
+      }
+
+    });
+
+  };
+
+  this.recognition.onend =
+  () => {
+
+    setTimeout(
+      async () => {
+
+        if (
+          this.voiceTranscript
+            ?.trim()
+        ) {
+
+          await this.stopListening();
 
         }
 
-      });
+        else {
 
-    };
+          this.isListening =
+            false;
 
-  this.recognition.onend =
-    async () => {
+        }
 
-      /*
-       * User clicked Speak Again
-       */
+      },
+      200
+    );
 
-      if (
-        this.restartVoice
-      ) {
-
-        this.restartVoice =
-          false;
-
-        setTimeout(() => {
-
-          this.startVoiceExpense();
-
-        }, 300);
-
-        return;
-
-      }
-
-      /*
-       * User manually stopped
-       */
-
-      if (
-        !this.isListening
-      ) {
-
-        return;
-
-      }
-
-      await this.stopListening();
-
-    };
+  };
 
   try {
 
@@ -1215,6 +1224,19 @@ async populateExpenseForm(
   result: any
 ) {
 
+  if (
+    !result?.success
+  ) {
+
+    this.uiService.showToast(
+      'No expense detected',
+      'error'
+    );
+
+    return;
+
+  }
+
   const category =
 
     this.categories.find(
@@ -1238,6 +1260,17 @@ async populateExpenseForm(
     await this.selectCategory(
       category.id
     );
+
+  }
+
+  else {
+
+    this.uiService.showToast(
+      'Category not found',
+      'error'
+    );
+
+    return;
 
   }
 
@@ -1267,18 +1300,22 @@ async populateExpenseForm(
   }
 
   this.expenseAmount =
+
     Number(
       result.amount
     ) || 0;
 
   this.expenseDescription =
-    result.description ?? '';
+
+    result.description
+      ?.trim() || '';
 
   this.expenseDate =
-  result.date ||
-  new Date()
-    .toISOString()
-    .split('T')[0];
+
+    result.date ||
+    new Date()
+      .toISOString()
+      .split('T')[0];
 
   this.editingExpense =
     null;
@@ -1289,21 +1326,6 @@ async populateExpenseForm(
 }
 async stopListening() {
 
-  try {
-
-    this.recognition?.stop();
-
-  }
-
-  catch (error) {
-
-    console.error(
-      'Failed to stop recognition',
-      error
-    );
-
-  }
-
   this.isListening = false;
 
   const transcript =
@@ -1311,44 +1333,21 @@ async stopListening() {
     this.voiceTranscript
       ?.trim();
 
-  /*
-   * User closed immediately
-   */
-
   if (
     !transcript
   ) {
-
-    this.voiceTranscript = '';
-
-    this.uiService.showToast(
-
-      'No speech detected',
-
-      'error'
-
-    );
 
     return;
 
   }
 
-  /*
-   * Extremely short speech
-   */
-
   if (
     transcript.length < 3
   ) {
 
-    this.voiceTranscript = '';
-
     this.uiService.showToast(
-
       'Please speak a little more clearly',
-
       'error'
-
     );
 
     return;
@@ -1373,41 +1372,27 @@ async stopListening() {
       result
     );
 
-    /*
-     * AI returned error
-     */
-
     if (
       !result ||
       !result.success
     ) {
 
       this.uiService.showToast(
-
         'Unable to understand expense',
-
         'error'
-
       );
 
       return;
 
     }
 
-    /*
-     * Missing amount
-     */
-
     if (
       !result.amount
     ) {
 
       this.uiService.showToast(
-
         'Could not detect amount',
-
         'error'
-
       );
 
       return;
@@ -1419,11 +1404,8 @@ async stopListening() {
     );
 
     this.uiService.showToast(
-
       'Expense detected successfully',
-
       'success'
-
     );
 
   }
@@ -1436,11 +1418,8 @@ async stopListening() {
     );
 
     this.uiService.showToast(
-
       'Failed to process expense',
-
       'error'
-
     );
 
   }
@@ -1451,34 +1430,12 @@ async stopListening() {
 
     this.isProcessingVoice = false;
 
-    this.voiceTranscript = '';
-
   }
 
 }
 speakAgain() {
 
   this.voiceTranscript = '';
-
-  this.restartVoice = true;
-
-  this.isListening = false;
-
-  try {
-
-    this.recognition?.stop();
-
-  }
-
-  catch (error) {
-
-    console.error(error);
-
-    this.restartVoice = false;
-
-    this.startVoiceExpense();
-
-  }
 
 }
 async testInsights() {
@@ -1611,6 +1568,7 @@ async generateTodaysInsight() {
     if (
       result.data?.success
     ) {
+      console.log("result: ",result)
 
       this.latestInsight = {
 
@@ -1654,6 +1612,465 @@ async generateTodaysInsight() {
 
     this.isGeneratingInsight =
       false;
+
+  }
+
+}
+async calculateAiEligibility() {
+
+  const profile =
+    await this.supabaseService
+      .getProfile();
+
+  const expenses =
+    await this.supabaseService
+      .getExpenses();
+
+  const createdDate =
+    new Date(
+      profile.created_at
+    );
+
+  const today =
+    new Date();
+
+  const accountAgeDays =
+    Math.floor(
+      (
+        today.getTime() -
+        createdDate.getTime()
+      ) /
+      (
+        1000 *
+        60 *
+        60 *
+        24
+      )
+    );
+
+  this.aiEligibility = {
+
+    expenseCount:
+      expenses.length,
+
+    accountAgeDays,
+
+    eligible:
+      expenses.length >= 10 &&
+      accountAgeDays >= 7
+
+  };
+
+}
+onReceiptSelected(
+  event: any
+) {
+
+  const file =
+    event.target.files?.[0];
+
+  if (!file) {
+
+    return;
+
+  }
+
+  this.selectedReceiptFile =
+    file;
+
+  const reader =
+    new FileReader();
+
+  reader.onload =
+    () => {
+
+      this.receiptPreview =
+        reader.result as string;
+
+      this.isReceiptPreviewOpen =
+        true;
+
+    };
+
+  reader.readAsDataURL(
+    file
+  );
+  this.activeAiMode =
+  'receipt';
+
+this.voiceTranscript =
+  '';
+
+this.isListening =
+  false;
+
+}
+async extractText(
+  image: Blob
+): Promise<string> {
+
+  const {
+    data: {
+      text
+    }
+  } = await Tesseract
+    .recognize(
+      image,
+      'eng'
+    );
+
+  return text;
+
+}
+async useReceipt() {
+
+  if (
+    !this.selectedReceiptFile
+  ) {
+
+    return;
+
+  }
+
+  this.isScanningReceipt =
+    true;
+
+  this.uiService.showLoader();
+
+  try {
+
+    const enhancedImage =
+
+  await this.preprocessImage(
+    this.selectedReceiptFile
+  );
+
+const text =
+
+  await this.extractText(
+    enhancedImage
+  );
+
+console.log(
+  'OCR TEXT:',
+  text
+);
+
+    const result =
+      await this.aiService
+        .parseExpense(
+          text
+        );
+      console.log("Text output:",result)
+
+    if (
+      !result?.success
+    ) {
+
+      this.uiService.showToast(
+        'Unable to understand receipt',
+        'error'
+      );
+
+      return;
+
+    }
+
+    await this.populateExpenseForm(
+      result
+    );
+
+    this.uiService.showToast(
+      'Receipt scanned successfully',
+      'success'
+    );
+
+    this.clearReceipt();
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    this.uiService.showToast(
+      'Receipt scan failed',
+      'error'
+    );
+
+  }
+
+  finally {
+
+    this.isScanningReceipt =
+      false;
+
+    this.uiService.hideLoader();
+
+  }
+
+}
+uploadAnotherReceipt() {
+
+  this.selectedReceiptFile =
+    null;
+
+  this.receiptPreview =
+    null;
+
+  this.isReceiptPreviewOpen =
+    false;
+
+  this.receiptInput
+    ?.nativeElement
+    .click();
+
+}
+clearReceipt() {
+
+  this.selectedReceiptFile =
+    null;
+
+  this.receiptPreview =
+    null;
+
+  this.isReceiptPreviewOpen =
+    false;
+
+  if (
+    this.activeAiMode ===
+    'receipt'
+  ) {
+
+    this.activeAiMode =
+      null;
+
+  }
+
+  if (
+  this.receiptInput
+) {
+
+  this.receiptInput
+    .nativeElement
+    .value = '';
+
+}
+
+}
+resetVoiceMode() {
+
+  this.voiceTranscript =
+    '';
+
+  this.isListening =
+    false;
+
+  if (
+    this.activeAiMode ===
+    'voice'
+  ) {
+
+    this.activeAiMode =
+      null;
+
+  }
+
+}
+async preprocessImage(
+  file: File
+): Promise<Blob> {
+
+  return new Promise(
+    (resolve) => {
+
+      const image =
+        new Image();
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        (e: any) => {
+
+          image.src =
+            e.target.result;
+
+        };
+
+      image.onload =
+        () => {
+
+          const canvas =
+            document.createElement(
+              'canvas'
+            );
+
+          const ctx =
+            canvas.getContext(
+              '2d'
+            )!;
+
+          canvas.width =
+            image.width;
+
+          canvas.height =
+            image.height;
+
+          ctx.drawImage(
+            image,
+            0,
+            0
+          );
+
+          const imageData =
+            ctx.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+
+          const data =
+            imageData.data;
+
+          for (
+            let i = 0;
+            i < data.length;
+            i += 4
+          ) {
+
+            const avg =
+
+              (
+                data[i] +
+                data[i + 1] +
+                data[i + 2]
+              ) / 3;
+
+            const contrast =
+              avg > 140
+                ? 255
+                : 0;
+
+            data[i] =
+              contrast;
+
+            data[i + 1] =
+              contrast;
+
+            data[i + 2] =
+              contrast;
+
+          }
+
+          ctx.putImageData(
+            imageData,
+            0,
+            0
+          );
+
+          canvas.toBlob(
+            (blob) => {
+
+              resolve(blob!);
+
+            },
+            'image/png'
+          );
+
+        };
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+  );
+
+}filterExpenses() {
+
+  const search =
+
+    this.expenseSearch
+      .toLowerCase()
+      .trim();
+
+  if (
+    !search
+  ) {
+
+    this.filteredExpenses =
+      [...this.expenses];
+
+    return;
+
+  }
+
+  this.filteredExpenses =
+
+    this.expenses.filter(
+      (expense: any) => {
+
+        return (
+
+          expense.description
+            ?.toLowerCase()
+            .includes(search)
+
+          ||
+
+          expense.categories?.name
+            ?.toLowerCase()
+            .includes(search)
+
+          ||
+
+          expense.subcategories?.name
+            ?.toLowerCase()
+            .includes(search)
+
+          ||
+
+          expense.amount
+            ?.toString()
+            .includes(search)
+
+          ||
+
+          expense.expense_date
+            ?.includes(search)
+
+        );
+
+      }
+    );
+
+}
+async testNotification() {
+
+  const granted =
+
+    await this.notificationService
+      .requestPermission();
+
+  console.log(
+    'Permission:',
+    granted
+  );
+
+  if (
+    granted
+  ) {
+
+    await this.notificationService
+      .showNotification(
+
+        'Rezu Test',
+
+        'Notifications are working 🎉'
+
+      );
 
   }
 

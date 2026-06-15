@@ -5,7 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { UiService } from '../../services/ui.service';
-
+import {NotificationService} from "../../services/notification.service"
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -22,7 +22,8 @@ export class LoginComponent {
     private supabaseService: SupabaseService,
   private authService: AuthService,
   private router: Router,
-  private uiService: UiService
+  private uiService: UiService,
+  private notificationService: NotificationService
 ) {}
 magicLinkSent = false;
 authMode:
@@ -62,6 +63,7 @@ password = '';
     await this.router.navigate([
       '/dashboard'
     ]);
+    
 
   }
 
@@ -72,6 +74,13 @@ password = '';
     ]);
 
   }
+
+
+  this.notificationService
+    .scheduleNotifications();
+
+  this.notificationService
+    .scheduleMorningInsight();
 
 }
 async signUp(

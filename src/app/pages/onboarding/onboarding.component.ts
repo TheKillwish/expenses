@@ -440,5 +440,105 @@ validateAllocation() {
   
 
 }
+autoAllocateBudget() {
+
+  const recommended: any = {
+
+    'Rent': 30,
+    'Food': 15,
+    'Travel': 10,
+    'Utilities': 8,
+    'Medical': 5,
+    'Shopping': 10,
+    'EMI': 10,
+    'Personal Development': 5,
+    'Office': 2,
+    'Entertainment': 5
+
+  };
+
+  let totalWeight = 0;
+
+  this.selectedCategories
+    .forEach(
+      (category: any) => {
+
+        totalWeight +=
+
+          recommended[
+            category.name
+          ] || 5;
+
+      }
+    );
+
+  this.selectedCategories
+  .forEach(
+    (category: any) => {
+
+      const weight =
+
+        recommended[
+          category.name
+        ] || 5;
+
+      const TARGET_BUDGET = 80;
+
+const calculatedValue =
+
+  Math.round(
+    (
+      weight /
+      totalWeight
+    ) * TARGET_BUDGET
+  );
+
+
+
+      this.animatePercentage(
+        category,
+        calculatedValue
+      );
+
+    }
+  );
+
+  this.validateAllocation();
+
+}
+animatePercentage(
+  category: any,
+  target: number
+) {
+
+  category.percentage = 0;
+
+  const interval =
+
+    setInterval(() => {
+
+      category.percentage++;
+
+      this.validateAllocation();
+
+      if (
+        category.percentage >=
+        target
+      ) {
+
+        category.percentage =
+          target;
+
+        this.validateAllocation();
+
+        clearInterval(
+          interval
+        );
+
+      }
+
+    }, 15);
+
+}
 
 }

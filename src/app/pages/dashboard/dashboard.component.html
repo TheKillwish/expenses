@@ -103,7 +103,7 @@
   </button>
   <!-- <button
   class="logout-btn"
-  (click)="testInsights()">
+  (click)="testNotification()">
 
   Test Insights
 
@@ -211,61 +211,163 @@
   </div>
 
   <div
-    class="ai-metric"
-    *ngIf="latestInsight.metrics">
+  class="ai-metric"
+  *ngIf="latestInsight.metrics">
 
-    <span>
-      Ahead of Plan
-    </span>
+  <div>
 
-    <strong>
-
-      ₹{{
-        latestInsight.metrics.savings_difference
-        | number:'1.0-0'
-      }}
-
-    </strong>
+    Savings Impact
 
   </div>
+
+  <strong>
+
+    ₹{{
+      latestInsight.metrics
+        .savings_difference
+      | number:'1.0-0'
+    }}
+
+  </strong>
+
+</div>
+
+<div class="ai-footer" *ngIf="
+    latestInsight &&
+    !hasGeneratedToday
+  " >
+
+  Last updated
+
+  {{
+    latestInsight.created_at
+      | date:'dd MMM, hh:mm a'
+  }}
+
+</div>
 
 </div>
 
 <div
-  *ngIf="!latestInsight"
+  *ngIf="
+    !latestInsight &&
+    !aiEligibility.eligible
+  "
   class="ai-placeholder">
 
   <div class="ai-placeholder-icon">
+
     ✨
+
   </div>
 
   <h3>
-    Rezu AI Coach
+
+    Unlock Rezu AI Coach
+
   </h3>
 
   <p>
-    Your personalized financial insights are being prepared.
+
+    Add more expenses to unlock
+    personalized financial insights.
+
   </p>
 
-  <div class="ai-requirements">
+  <div class="progress-card">
 
-    <div>
+    <div class="progress-label">
 
-      Expenses
+      Expense Progress
 
-      {{ aiEligibility.expenseCount }}/10
+      <span>
+
+        {{ aiEligibility.expenseCount }}/10
+
+      </span>
 
     </div>
 
-    <div>
+    <div class="progress-bar">
 
-      Days
+      <div
+        class="progress-fill"
+        [style.width.%]="
+          (aiEligibility.expenseCount / 10) * 100
+        ">
 
-      {{ aiEligibility.accountAgeDays }}/7
+      </div>
 
     </div>
 
   </div>
+
+  <div class="progress-card">
+
+    <div class="progress-label">
+
+      Account Age
+
+      <span>
+
+        {{ aiEligibility.accountAgeDays }}/7 days
+
+      </span>
+
+    </div>
+
+    <div class="progress-bar">
+
+      <div
+        class="progress-fill secondary"
+        [style.width.%]="
+          (
+            aiEligibility.accountAgeDays / 7
+          ) * 100
+        ">
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="ai-motivation">
+
+    {{
+      10 -
+      aiEligibility.expenseCount
+    }}
+
+    more expenses to unlock AI.
+
+  </div>
+
+</div>
+<div
+  *ngIf="
+    !latestInsight &&
+    aiEligibility.eligible
+  "
+  class="ai-generating">
+
+  <div class="ai-loader">
+
+    ✨
+
+  </div>
+
+  <h3>
+
+    AI Coach Ready
+
+  </h3>
+
+  <p>
+
+    Generate your first insight.
+
+  </p>
 
 </div>
 <div class="ai-footer">
@@ -273,7 +375,7 @@
   <button
     *ngIf="!hasGeneratedToday"
     class="generate-ai-btn"
-    [disabled]="isGeneratingInsight"
+    [disabled]="!aiEligibility.eligible"
     (click)="generateTodaysInsight()">
 
     <span *ngIf="!isGeneratingInsight">
@@ -365,6 +467,15 @@
   <!-- Recent Expenses -->
 
   <section class="section">
+    <div class="expense-search">
+
+  <input
+    type="text"
+    placeholder="🔍 Search expenses..."
+    [(ngModel)]="expenseSearch"
+    (input)="filterExpenses()">
+
+</div>
 
   <div class="section-header">
 
@@ -377,9 +488,10 @@
   <div
     class="expense-item"
     *ngFor="
-      let expense
-      of visibleExpenseList
-    ">
+  let expense
+  of filteredExpenses
+    | slice:0:visibleExpenses
+">
 
     <div class="expense-info">
 
@@ -587,26 +699,128 @@
 
   </div>
 
+  <div class="ai-tools">
+
   <button
-    class="ai-voice-btn"
+    class="ai-action-btn voice"
+    [class.active]="
+    activeAiMode ===
+    'voice'
+  "
     (click)="startVoiceExpense()"
     [disabled]="isListening">
 
-    <span *ngIf="!isListening">
+    <span class="ai-icon">
 
-      🎙️ Describe Expense
-
-    </span>
-
-    <span *ngIf="isListening">
-
-      🎤 Listening...
+      🎙️
 
     </span>
+
+    <div class="ai-content">
+
+      <div class="ai-title">
+
+        Voice Expense
+
+      </div>
+
+      <div class="ai-subtitle">
+
+        Describe your expense
+
+      </div>
+
+    </div>
 
   </button>
-  <div
-  *ngIf="isListening"
+
+  <button
+    class="ai-action-btn receipt"
+    [class.active]="
+    activeAiMode ===
+    'receipt'
+  "
+
+    (click)="receiptInput.click()">
+
+    <span class="ai-icon">
+
+      📷
+
+    </span>
+
+    <div class="ai-content">
+
+      <div class="ai-title">
+
+        Scan Receipt
+
+      </div>
+
+      <div class="ai-subtitle">
+
+        Photo or gallery
+
+      </div>
+
+    </div>
+
+  </button>
+
+  <input
+    #receiptInput
+    hidden
+    type="file"
+    accept="image/*"
+    capture="environment"
+    (change)="onReceiptSelected($event)">
+
+</div>
+<div
+  *ngIf="
+  activeAiMode ===
+  'receipt' &&
+  receiptPreview
+"
+  class="receipt-preview-card">
+
+  <div class="receipt-status">
+
+    📷 Receipt Selected
+
+  </div>
+
+  <img
+    [src]="receiptPreview"
+    class="receipt-image">
+
+  <div class="receipt-actions">
+
+    <button
+      class="receipt-again-btn"
+      (click)="uploadAnotherReceipt()">
+
+      📷 Choose Another
+
+    </button>
+
+    <button
+      class="receipt-use-btn"
+      (click)="useReceipt()">
+
+      ✨ Use This Receipt
+
+    </button>
+
+  </div>
+
+</div>
+
+<div
+  *ngIf="
+  activeAiMode ===
+  'voice' && isListening
+"
   class="voice-live-card">
 
   <div class="voice-status">
@@ -619,62 +833,55 @@
 
   <div class="voice-text">
 
-    {{ voiceTranscript ||
-       'Start speaking...' }}
+    {{
+      voiceTranscript ||
+      'Try saying "Spent 500 at Burger King last Friday"'
+    }}
 
   </div>
-
-  <div class="voice-wave">
-
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-
-  </div>
-
-  <div class="voice-header">
-
-  <!-- <div class="voice-status">
-
-    <span class="voice-dot"></span>
-
-    Listening...
-
-  </div> -->
 
   <div
-  class="voice-actions"
-  *ngIf="voiceTranscript">
+    class="voice-wave"
+    *ngIf="!voiceTranscript">
 
-  <button
-    class="speak-again-btn"
-    (click)="speakAgain()">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
 
-    🎙️ Speak Again
+  </div>
 
-  </button>
+  <div
+    class="voice-actions">
 
-  <button
-    class="use-expense-btn"
-    (click)="stopListening()">
+    <button
+      class="speak-again-btn"
+      *ngIf="voiceTranscript"
+      (click)="speakAgain()">
 
-    ✨ Use This Expense
+      🎙️ Speak Again
 
-  </button>
+    </button>
 
-</div>
+    <button
+      class="use-expense-btn"
+      *ngIf="voiceTranscript"
+      (click)="stopListening()">
 
-<button
-  *ngIf="!voiceTranscript"
-  class="stop-listening-btn"
-  (click)="stopListening()">
+      ✨ Use This Expense
 
-  ⏹ Stop Listening
+    </button>
 
-</button>
+    <button
+      *ngIf="!voiceTranscript"
+      class="stop-listening-btn"
+      (click)="stopListening()">
 
-</div>
+      ⏹ Stop Listening
+
+    </button>
+
+  </div>
 
 </div>
 

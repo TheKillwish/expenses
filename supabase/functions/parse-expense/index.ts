@@ -258,29 +258,41 @@ Current Date:
 
 ${today}
 
-Expense:
+Expense Text:
 
 "${text}"
 
 Return JSON:
 
 {
-  "amount": number,
-  "category": string,
-  "subcategory": string,
-  "description": string,
-  "date": string
+  "success": boolean,
+  "amount": number|null,
+  "category": string|null,
+  "subcategory": string|null,
+  "description": string|null,
+  "date": string|null
 }
 
 Rules:
 
-- category must match available categories
-- subcategory must match available subcategories
-- use closest matching category
-- description should be concise
-- date format must be YYYY-MM-DD
-- if date missing use current date
-
+- Use only provided categories and subcategories
+- OCR text may contain spelling mistakes
+- Infer category from context and keywords
+- Medical, hospital, clinic, pharmacy, doctor, medicine => Medical
+- Fuel, petrol, diesel => Travel
+- Restaurant, cafe, food delivery => Food
+- Rent, landlord => Rent
+- Electricity, water, internet, recharge => Utilities
+- Description should be merchant or expense name
+- Date format YYYY-MM-DD
+- If date missing use current date
+- success=true ONLY if a real expense can be confidently identified
+- amount must exist in the text and must not be guessed
+- if amount is missing return success=false
+- if merchant/service/purchase cannot be identified return success=false
+- do not infer an expense from random OCR text
+- when in doubt return success=false
+- Return JSON only
 `;
 
       const groqResponse =
@@ -394,6 +406,8 @@ Rules:
 
         JSON.stringify({
           context:categoryContext,
+          prompt:prompt,
+
 
           success:
             true,
